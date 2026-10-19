@@ -452,13 +452,14 @@ bukan asumsi sebelum implementasi.
                                     2. Background Janitor (Auto-cleanup temp > 30 menit) 
                                     3. ZIP / Folder Ingestion (Auto-bundle archive)  
 
-  **Fase 7: CLI & Jaringan**        *(Menengah — Engine Extension, 0 Auth)*              ⏳ Belum Mulai
+  **Fase 7: CLI Tool**              *(Menengah — Engine Extension, 0 Auth)*              ✅ Selesai (CLI)
                                     1. CLI Interface (`file2md convert`, `file2md bundle`)
-                                    2. Deployment LAN & Nginx reverse proxy              
+                                    2. Shortcut runner `./file2md`
+                                    *(Catatan: Deployment LAN/Nginx ditunda sampai server rumah aktif)*
 
   ---                               ---                                                  ---
 
-  **Fase 8: Konsep Ulang — Auth**   *(Butuh Arsitektur Baru — Database & User System)*   ⏳ Belum Mulai
+  **Fase 8: Konsep Ulang — Auth**   *(Butuh Arsitektur Baru — Database & User System)*   ⏳ Siap Dikerjakan
                                     1. Database Engine (SQLite / PostgreSQL + ORM)       
                                     2. User Authentication (Register/Login JWT)          
                                     3. Rate Limiter Tier (Guest vs Free Registered)      
