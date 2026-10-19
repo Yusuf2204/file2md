@@ -4,19 +4,24 @@ from app.parsers.base import BaseParser
 from app.parsers.text import TextParser
 from app.parsers.json_parser import JsonParser
 from app.parsers.csv_parser import CsvParser
-
+from app.parsers.code import CodeParser
+from app.parsers.pdf import PdfParser
+from app.parsers.docx import DocxParser
+from app.parsers.xlsx import XlsxParser
 
 class UnsupportedFormatError(Exception):
     """Exception ketika format file tidak didukung."""
     pass
 
-
 class FormatDetector:
     def __init__(self, parsers: list[BaseParser] | None = None):
-        # Registri parser bawaan P0
         self.parsers: list[BaseParser] = parsers or [
             JsonParser(),
             CsvParser(),
+            XlsxParser(),
+            CodeParser(),
+            PdfParser(),
+            DocxParser(),
             TextParser(),
         ]
 

@@ -10,13 +10,12 @@ def test_health_check():
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
-
 def test_root():
     response = client.get("/")
     assert response.status_code == 200
-    assert "message" in response.json()
-
-
+    assert "text/html" in response.headers["content-type"]
+    assert "File2MD" in response.text
+    
 def test_api_convert_txt_success():
     file_bytes = b"Catatan penting\nBaris kedua."
     response = client.post(
