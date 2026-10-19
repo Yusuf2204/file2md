@@ -447,10 +447,10 @@ bukan asumsi sebelum implementasi.
 
   ---                               ---                                                  ---
 
-  **Fase 6: Quick Wins**            *(Paling Cepat — Frontend & Hygiene, 0 DB)*          ⏳ Siap Dikerjakan
+  **Fase 6: Quick Wins**            *(Paling Cepat — Frontend & Hygiene, 0 DB)*          ✅ Selesai
                                     1. Dual View (Raw Console vs GitHub Rendered)        
                                     2. Background Janitor (Auto-cleanup temp > 30 menit) 
-                                    3. ZIP / Folder Ingestion (Auto-bundle archive)      
+                                    3. ZIP / Folder Ingestion (Auto-bundle archive)  
 
   **Fase 7: CLI & Jaringan**        *(Menengah — Engine Extension, 0 Auth)*              ⏳ Belum Mulai
                                     1. CLI Interface (`file2md convert`, `file2md bundle`)

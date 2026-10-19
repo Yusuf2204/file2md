@@ -88,6 +88,9 @@ class ConversionService:
         """Membuat ringkasan satu baris untuk Source Index."""
         meta = output.metadata
         parser = meta.get("parser", "")
+        if parser == "ZipParser":
+            total = meta.get("extracted_files", 0)
+            return f"ZIP Archive ({total} files extracted)"
         if parser == "CodeParser":
             lang = meta.get("language", "code")
             lines = meta.get("line_count", 0)

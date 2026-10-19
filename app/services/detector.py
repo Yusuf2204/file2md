@@ -9,6 +9,7 @@ from app.parsers.pdf import PdfParser
 from app.parsers.docx import DocxParser
 from app.parsers.xlsx import XlsxParser
 from app.parsers.image_parser import ImageParser
+from app.parsers.zip_parser import ZipParser
 
 class UnsupportedFormatError(Exception):
     """Exception ketika format file tidak didukung."""
@@ -24,6 +25,7 @@ class FormatDetector:
             PdfParser(),
             DocxParser(),
             ImageParser(),
+            ZipParser(), 
             TextParser(),
         ]
 
