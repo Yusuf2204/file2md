@@ -1,0 +1,11 @@
+services:
+  file2md:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: file2md-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8031}:8000"
+    environment:
+      - PYTHONUNBUFFERED=1

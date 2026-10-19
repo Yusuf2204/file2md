@@ -436,7 +436,7 @@ bukan asumsi sebelum implementasi.
                           lokal opsional          dependensi konversi
                                                   inti.
 
-  5\. Container           Dockerfile, Compose,    Aplikasi dapat            ⏳ Belum Mulai
+  5\. Container           Dockerfile, Compose,    Aplikasi dapat            ✅ Selesai
                           health check, kebijakan dijalankan di
                           temp                    container.
 
