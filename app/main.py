@@ -1,4 +1,7 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from app.routes.conversion import router as conversion_router
+from app.routes.pages import router as pages_router
 
 app = FastAPI(
     title="File2MD",
@@ -6,12 +9,14 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Static files untuk CSS dan aset
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+# Daftarkan router
+app.include_router(conversion_router)
+app.include_router(pages_router)
+
 
 @app.get("/health")
 def health_check() -> dict[str, str]:
     return {"status": "ok"}
-
-
-@app.get("/")
-def read_root() -> dict[str, str]:
-    return {"message": "Welcome to File2MD API. Visit /docs for OpenAPI specifications."}

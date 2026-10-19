@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File2MD — Universal File to Markdown</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <!-- HTMX untuk interaksi cepat tanpa reload halaman -->
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="brand">
+                <span class="logo">📄➡️📝</span>
+                <h1>File2MD</h1>
+            </div>
+            <p class="subtitle">Ubah file dokumen, data, dan teks menjadi Markdown bersih untuk AI context.</p>
+        </header>
+
+        <main>
+            <!-- Form Upload -->
+            <section class="card upload-card">
+                <form 
+                    hx-post="/convert-ui" 
+                    hx-target="#result-container" 
+                    hx-swap="innerHTML" 
+                    enctype="multipart/form-data"
+                    hx-indicator="#loading-indicator"
+                >
+                    <div class="file-drop-area">
+                        <input type="file" name="file" id="file-input" required onchange="updateFileName(this)">
+                        <label for="file-input" id="file-label">
+                            <span class="upload-icon">📁</span>
+                            <span id="label-text">Pilih atau seret file ke sini</span>
+                            <span class="file-hint">Format P0 yang didukung: .txt, .md, .json, .csv, .tsv</span>
+                        </label>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Konversi ke Markdown</button>
+                    </div>
+                </form>
+
+                <!-- Loading Indicator -->
+                <div id="loading-indicator" class="htmx-indicator loading-box">
+                    <div class="spinner"></div>
+                    <span>Memproses file...</span>
+                </div>
+            </section>
+
+            <!-- Target Hasil Konversi -->
+            <section id="result-container" class="result-area"></section>
+        </main>
+
+        <footer>
+            <p>File2MD &bull; Local-first &bull; Tidak ada data yang dikirim ke cloud.</p>
+        </footer>
+    </div>
+
+    <script>
+        function updateFileName(input) {
+            const label = document.getElementById('label-text');
+            if (input.files && input.files.length > 0) {
+                label.innerText = 'File dipilih: ' + input.files[0].name;
+            } else {
+                label.innerText = 'Pilih atau seret file ke sini';
+            }
+        }
+
+        function copyMarkdown() {
+            const textarea = document.getElementById('markdown-editor');
+            if (!textarea) return;
+            navigator.clipboard.writeText(textarea.value).then(() => {
+                const btn = document.getElementById('btn-copy');
+                const origText = btn.innerText;
+                btn.innerText = '✅ Disalin!';
+                setTimeout(() => { btn.innerText = origText; }, 2000);
+            });
+        }
+
+        function downloadMarkdown(filename) {
+            const textarea = document.getElementById('markdown-editor');
+            if (!textarea) return;
+            const content = textarea.value;
+            const blob = new Blob([content], { type: 'text/markdown;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const downloadName = filename.replace(/\.[^/.]+$/, "") + ".md";
+            a.href = url;
+            a.download = downloadName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
