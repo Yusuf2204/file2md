@@ -1,7 +1,9 @@
 import pytest
-import fitz
+import pymupdf
 import docx
 import openpyxl
+import shutil
+from PIL import Image, ImageDraw
 from app.parsers.base import ParserError
 from app.parsers.json_parser import JsonParser
 from pathlib import Path
@@ -11,6 +13,7 @@ from app.parsers.code import CodeParser
 from app.parsers.pdf import PdfParser
 from app.parsers.docx import DocxParser
 from app.parsers.xlsx import XlsxParser
+from app.parsers.image_parser import ImageParser
 
 def test_text_parser_can_handle():
     parser = TextParser()
@@ -134,7 +137,7 @@ def test_pdf_parser_text_extraction(tmp_path: Path):
     parser = PdfParser()
     pdf_path = tmp_path / "sample.pdf"
     # Buat PDF dummy 2 halaman dengan PyMuPDF
-    doc = fitz.open()
+    doc = pymupdf.open()
     page1 = doc.new_page()
     page1.insert_text((50, 72), "Halo Halaman Satu!")
     page2 = doc.new_page()
@@ -208,3 +211,41 @@ def test_xlsx_parser_multi_sheets(tmp_path: Path):
     assert "## Sheet: Info" in result.content
     assert "| Catatan |" in result.content
     assert result.metadata["total_sheets"] == 2
+
+def test_image_parser_can_handle():
+    parser = ImageParser()
+    assert parser.can_handle("foto.png") is True
+    assert parser.can_handle("banner.jpg") is True
+    assert parser.can_handle("icon.webp") is True
+    assert parser.can_handle("document.pdf") is False
+
+def test_image_parser_metadata_extraction(tmp_path: Path):
+    parser = ImageParser()
+    img_path = tmp_path / "test.png"
+    # Buat gambar 800x600 px (Rasio 4:3)
+    img = Image.new("RGB", (800, 600), color="blue")
+    img.save(img_path, format="PNG")
+    result = parser.parse(img_path)
+    assert "| **Format** | PNG |" in result.content
+    assert "| **Dimensi** | 800 × 600 px |" in result.content
+    assert "| **Rasio Aspek** | 4:3 |" in result.content
+    assert "| **Mode Warna** | RGB |" in result.content
+    assert result.metadata["width"] == 800
+    assert result.metadata["height"] == 600
+    assert result.metadata["aspect_ratio"] == "4:3"
+
+def test_image_parser_ocr_integration(tmp_path: Path):
+    # Tes ini otomatis berjalan jika tesseract sudah diinstall di sistem
+    if not shutil.which("tesseract"):
+        pytest.skip("Tesseract tidak terpasang di sistem.")
+    parser = ImageParser()
+    img_path = tmp_path / "ocr_test.png"
+    # Buat gambar putih bersih dengan teks hitam tebal
+    img = Image.new("RGB", (600, 200), color="white")
+    draw = ImageDraw.Draw(img)
+    draw.text((30, 80), "FILE2MD OCR TEST", fill="black")
+    img.save(img_path, format="PNG")
+    result = parser.parse(img_path)
+    assert result.metadata["has_ocr_text"] is True
+    assert "FILE2MD" in result.content.upper()
+    assert "Ekstraksi Teks (OCR Lokal)" in result.content

@@ -1,5 +1,5 @@
 from pathlib import Path
-import fitz  # PyMuPDF
+import pymupdf
 from app.parsers.base import BaseParser, ParseResult, ParserError
 
 
@@ -18,7 +18,7 @@ class PdfParser(BaseParser):
         warnings: list[str] = []
 
         try:
-            doc = fitz.open(file_path)
+            doc = pymupdf.open(file_path)
         except Exception as exc:
             raise ParserError(f"Gagal membuka file PDF: {str(exc)}") from exc
 

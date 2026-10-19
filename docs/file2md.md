@@ -432,7 +432,7 @@ bukan asumsi sebelum implementasi.
                           index, delimiter aman,  banyak sumber dengan
                           laporan parsial         jelas.
 
-  4\. Image/OCR           Metadata gambar dan OCR OCR tidak menjadi         ⏳ Belum Mulai
+  4\. Image/OCR           Metadata gambar dan OCR OCR tidak menjadi         ✅ Selesai
                           lokal opsional          dependensi konversi
                                                   inti.
 
