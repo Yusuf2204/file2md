@@ -44,8 +44,8 @@
                         <input type="file" name="files" id="file-input" multiple required onchange="updateFileName(this)">
                         <label for="file-input" id="file-label">
                             <span class="upload-icon">📁</span>
-                            <span id="label-text">Pilih atau seret satu / banyak file ke sini</span>
-                            <span class="file-hint">Mendukung multi-file: .py, .pdf, .docx, .xlsx, .csv, .json, .txt, .md</span>
+                            <span id="label-text">Pilih, seret file, atau tekan <strong>Ctrl + V</strong></span>
+                            <span class="file-hint">Mendukung upload file & paste langsung dari clipboard (screenshot / gambar web)</span>
                         </label>
                     </div>
 
@@ -110,6 +110,46 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }
+
+        window.addEventListener('paste', function (e) {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            let foundFile = false;
+
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].kind === 'file') {
+                    const blob = items[i].getAsFile();
+                    if (!blob) continue;
+
+                    // Beri nama otomatis jika gambar dari clipboard tidak memiliki nama
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                    const ext = blob.type.split('/')[1] || 'png';
+                    const filename = blob.name && blob.name !== 'image.png' 
+                        ? blob.name 
+                        : `clipboard_${timestamp}.${ext}`;
+
+                    // Bungkus ke objek File
+                    const file = new File([blob], filename, { type: blob.type });
+
+                    // Masukkan ke file input menggunakan DataTransfer API
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    const fileInput = document.getElementById('file-input');
+                    fileInput.files = dataTransfer.files;
+
+                    // Perbarui label tampilan
+                    const label = document.getElementById('label-text');
+                    label.innerHTML = `📋 <strong>Gambar Clipboard Ditempel:</strong> ${filename}`;
+                    foundFile = true;
+
+                    // Opsional: Otomatis submit form agar langsung dikonversi tanpa perlu klik tombol
+                    const form = fileInput.closest('form');
+                    if (form && htmx) {
+                        htmx.trigger(form, 'submit');
+                    }
+                    break;
+                }
+            }
+        });
     </script>
 </body>
 </html>

@@ -3,6 +3,7 @@ import shutil
 from pathlib import Path
 from PIL import Image, ImageEnhance
 from app.parsers.base import BaseParser, ParseResult, ParserError
+from app.services.vision import LocalVisionService
 
 
 class ImageParser(BaseParser):
@@ -73,6 +74,8 @@ class ImageParser(BaseParser):
 
         try:
             with Image.open(file_path) as img:
+                vision_service = LocalVisionService.get_instance()
+                ai_description = vision_service.describe_image(img)
                 img_format = img.format or file_path.suffix.upper().replace(".", "")
                 width, height = img.size
                 mode = img.mode
@@ -96,6 +99,13 @@ class ImageParser(BaseParser):
             f"| **Mode Warna** | {mode} |",
             f"| **Ukuran File** | {formatted_size} |",
         ]
+
+        if ai_description:
+            md_lines.extend([
+                "\n---\n",
+                "### Deskripsi Visual (Local AI Vision)\n",
+                f"> **Konteks Gambar:** *\"{ai_description}\"*\n",
+            ])
 
         # Tambahkan hasil OCR jika ada
         if ocr_text:
@@ -122,6 +132,7 @@ class ImageParser(BaseParser):
                 "aspect_ratio": aspect_ratio,
                 "mode": mode,
                 "file_size": formatted_size,
+                "ai_caption": ai_description or "N/A",
                 "has_ocr_text": bool(ocr_text),
             },
             warnings=warnings,

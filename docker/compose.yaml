@@ -1,3 +1,5 @@
+name: file2md  
+
 services:
   file2md:
     build:
@@ -7,5 +9,12 @@ services:
     restart: unless-stopped
     ports:
       - "${PORT:-8031}:8000"
+    volumes:
+      - ../app:/app/app:ro
+      - hf-cache:/home/appuser/.cache/huggingface
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     environment:
       - PYTHONUNBUFFERED=1
+
+volumes:
+  hf-cache:

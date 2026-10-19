@@ -13,7 +13,10 @@ RUN useradd -m -u 1000 appuser
 
 WORKDIR /app
 
-# Copy requirements dan install dependensi
+# 1. Install PyTorch khusus CPU terlebih dahulu (Hemat 2.3 GB!)
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
+# 2. Install requirements lainnya
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -21,8 +24,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ ./app/
 COPY docs/ ./docs/
 
-# Siapkan direktori temp untuk runtime dan atur permission
-RUN mkdir -p temp && chown -R appuser:appuser /app
+# Siapkan direktori temp dan cache Hugging Face dengan hak milik appuser
+RUN mkdir -p temp /home/appuser/.cache/huggingface \
+    && chown -R appuser:appuser /app /home/appuser
+
+ENV HF_HOME=/home/appuser/.cache/huggingface
 
 # Beralih ke user non-root
 USER appuser
