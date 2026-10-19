@@ -5,6 +5,16 @@ from dataclasses import dataclass
 from typing import BinaryIO
 from app.parsers.base import ParseResult, ParserError
 from app.services.detector import FormatDetector, UnsupportedFormatError
+from app.services.markdown_builder import BundleItem, MarkdownBuilder
+
+
+@dataclass
+class BundleOutput:
+    markdown: str
+    total_files: int
+    success_files: int
+    failed_files: int
+    warnings: list[str]
 
 
 @dataclass
@@ -73,3 +83,73 @@ class ConversionService:
                     os.unlink(temp_path)
                 except OSError:
                     pass
+
+    def _describe_file(self, output: ConversionOutput) -> str:
+        """Membuat ringkasan satu baris untuk Source Index."""
+        meta = output.metadata
+        parser = meta.get("parser", "")
+        if parser == "CodeParser":
+            lang = meta.get("language", "code")
+            lines = meta.get("line_count", 0)
+            return f"{lang.title()} source ({lines} baris)"
+        if parser == "PdfParser":
+            pages = meta.get("page_count", 0)
+            return f"PDF document ({pages} halaman)"
+        if parser == "DocxParser":
+            return "DOCX document"
+        if parser == "XlsxParser":
+            sheets = meta.get("total_sheets", 1)
+            return f"Excel spreadsheet ({sheets} sheets)"
+        if parser == "JsonParser":
+            return "JSON data"
+        if parser == "CsvParser":
+            rows = meta.get("row_count", 0)
+            return f"CSV table ({rows} baris)"
+        return "Plain text"
+
+    def bundle_streams(
+        self,
+        files: list[tuple[BinaryIO, str, str | None]],
+        title: str = "Project Context",
+    ) -> BundleOutput:
+        """
+        Mengonversi banyak file sekaligus dan menggabungkannya menjadi satu Markdown (FR-05).
+        Mendukung laporan parsial: kegagalan satu file tidak membuat seluruh bundle gagal (Bab 14).
+        """
+        builder = MarkdownBuilder(title=title)
+        items: list[BundleItem] = []
+        all_warnings: list[str] = []
+        success_count = 0
+        failed_count = 0
+
+        for file_obj, filename, mime_type in files:
+            try:
+                out = self.convert_stream(file_obj=file_obj, filename=filename, mime_type=mime_type)
+                desc = self._describe_file(out)
+                items.append(BundleItem(
+                    filename=filename,
+                    content=out.markdown,
+                    description=desc,
+                    warnings=out.warnings,
+                ))
+                if out.warnings:
+                    all_warnings.extend([f"[{filename}] {w}" for w in out.warnings])
+                success_count += 1
+            except Exception as exc:
+                failed_count += 1
+                err_msg = str(exc)
+                items.append(BundleItem(
+                    filename=filename,
+                    error=err_msg,
+                ))
+                all_warnings.append(f"[{filename}] Gagal: {err_msg}")
+
+        bundle_markdown = builder.build_bundle(items)
+
+        return BundleOutput(
+            markdown=bundle_markdown,
+            total_files=len(files),
+            success_files=success_count,
+            failed_files=failed_count,
+            warnings=all_warnings,
+        )

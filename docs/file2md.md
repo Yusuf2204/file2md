@@ -414,40 +414,40 @@ bukan asumsi sebelum implementasi.
 
 ## 15. Roadmap
 
-  -----------------------------------------------------------------------
-  Fase                    Cakupan                 Definisi selesai
-  ----------------------- ----------------------- -----------------------
-  0\. Setup               Repo, venv, FastAPI,    Aplikasi berjalan lokal
+  -----------------------------------------------------------------------------------------
+  Fase                    Cakupan                 Definisi selesai          Status
+  ----------------------- ----------------------- ------------------------- ---------------
+  0\. Setup               Repo, venv, FastAPI,    Aplikasi berjalan lokal   ✅ Selesai
                           konfigurasi, struktur   dan struktur dasar
                           modular, health check   diuji.
 
-  1\. MVP Core            TXT, JSON, CSV;         Acceptance criteria P0
+  1\. MVP Core            TXT, JSON, CSV;         Acceptance criteria P0    ✅ Selesai
                           Convert; preview, edit, lulus.
                           copy, download          
 
-  2\. Dokumen             PDF teks, DOCX, XLSX,   Parser punya fixture
+  2\. Dokumen             PDF teks, DOCX, XLSX,   Parser punya fixture      ✅ Selesai
                           source code             dan test.
 
-  3\. Bundle              Multi-file, source      Satu `.md` memuat
+  3\. Bundle              Multi-file, source      Satu `.md` memuat         ✅ Selesai
                           index, delimiter aman,  banyak sumber dengan
                           laporan parsial         jelas.
 
-  4\. Image/OCR           Metadata gambar dan OCR OCR tidak menjadi
+  4\. Image/OCR           Metadata gambar dan OCR OCR tidak menjadi         ⏳ Belum Mulai
                           lokal opsional          dependensi konversi
                                                   inti.
 
-  5\. Container           Dockerfile, Compose,    Aplikasi dapat
+  5\. Container           Dockerfile, Compose,    Aplikasi dapat            ⏳ Belum Mulai
                           health check, kebijakan dijalankan di
                           temp                    container.
 
-  6\. Server pribadi      Deployment LAN, reverse Akses terkendali dari
+  6\. Server pribadi      Deployment LAN, reverse Akses terkendali dari     ⏳ Belum Mulai
                           proxy/tunnel, kontrol   perangkat yang
                           akses                   diizinkan.
 
-  7\. Ekstensi            CLI, format tambahan,   Fitur baru tidak
+  7\. Ekstensi            CLI, format tambahan,   Fitur baru tidak          ⏳ Belum Mulai
                           AI enhancement opsional merusak conversion
                                                   engine.
-  -----------------------------------------------------------------------
+  -----------------------------------------------------------------------------------------
 
 ## 16. Risiko dan Mitigasi
 

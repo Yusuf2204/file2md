@@ -59,3 +59,33 @@ def test_api_convert_invalid_json():
     )
     assert response.status_code == 422
     assert "Format JSON tidak valid" in response.json()["detail"]
+
+def test_api_bundle_success():
+    files = [
+        ("files", ("script.py", io.BytesIO(b"print('ok')\n"), "text/x-python")),
+        ("files", ("data.json", io.BytesIO(b'{"key": "val"}'), "application/json")),
+    ]
+    response = client.post("/api/bundle", files=files, data={"title": "Test Bundle API"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_files"] == 2
+    assert data["success_files"] == 2
+    assert data["failed_files"] == 0
+    assert "# Test Bundle API" in data["markdown"]
+    assert "## Source Index" in data["markdown"]
+    assert "## File: script.py" in data["markdown"]
+    assert "## File: data.json" in data["markdown"]
+
+
+def test_api_bundle_partial_failure():
+    files = [
+        ("files", ("ok.txt", io.BytesIO(b"semua baik"), "text/plain")),
+        ("files", ("bad.unknown", io.BytesIO(b"bin"), "application/octet-stream")),
+    ]
+    response = client.post("/api/bundle", files=files)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_files"] == 2
+    assert data["success_files"] == 1
+    assert data["failed_files"] == 1
+    assert len(data["warnings"]) >= 1

@@ -42,3 +42,37 @@ def test_converter_service_file_too_large():
     # Pastikan file temp tetap dibersihkan meskipun terjadi error
     temp_files = list(Path("temp").glob("*"))
     assert len(temp_files) == 0
+
+def test_converter_service_bundle_success():
+    service = ConversionService()
+    files = [
+        (io.BytesIO(b"print('hello')\n"), "main.py", "text/x-python"),
+        (io.BytesIO(b"a,b\n1,2"), "data.csv", "text/csv"),
+    ]
+
+    output = service.bundle_streams(files, title="My Bundle")
+    assert output.total_files == 2
+    assert output.success_files == 2
+    assert output.failed_files == 0
+    assert "# My Bundle" in output.markdown
+    assert "## Source Index" in output.markdown
+    assert "- `main.py`" in output.markdown
+    assert "- `data.csv`" in output.markdown
+    assert "## File: main.py" in output.markdown
+    assert "## File: data.csv" in output.markdown
+
+
+def test_converter_service_bundle_partial_failure():
+    service = ConversionService()
+    files = [
+        (io.BytesIO(b"Halo teks"), "catatan.txt", "text/plain"),
+        (io.BytesIO(b"corrupt data"), "virus.exe", "application/octet-stream"),
+    ]
+
+    output = service.bundle_streams(files, title="Partial Bundle")
+    assert output.total_files == 2
+    assert output.success_files == 1
+    assert output.failed_files == 1
+    # Memastikan file yang gagal tercatat di indeks tanpa menghentikan bundle
+    assert "- `virus.exe` — ❌ **Gagal:**" in output.markdown
+    assert "## File: catatan.txt" in output.markdown

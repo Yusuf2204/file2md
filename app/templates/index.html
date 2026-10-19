@@ -28,17 +28,29 @@
                     enctype="multipart/form-data"
                     hx-indicator="#loading-indicator"
                 >
+                    <!-- Tambahan: Input Judul Bundle (Opsional) -->
+                    <div style="margin-bottom: 1rem;">
+                        <input 
+                            type="text" 
+                            name="bundle_title" 
+                            placeholder="Judul Bundle (Opsional, default: Project Context)" 
+                            class="markdown-editor" 
+                            style="padding: 0.6rem 1rem; height: auto;"
+                        >
+                    </div>
+
                     <div class="file-drop-area">
-                        <input type="file" name="file" id="file-input" required onchange="updateFileName(this)">
+                        <!-- Tambahkan attribute multiple dan ganti name="files" -->
+                        <input type="file" name="files" id="file-input" multiple required onchange="updateFileName(this)">
                         <label for="file-input" id="file-label">
                             <span class="upload-icon">📁</span>
-                            <span id="label-text">Pilih atau seret file ke sini</span>
-                            <span class="file-hint">Format P0 yang didukung: .txt, .md, .json, .csv, .tsv</span>
+                            <span id="label-text">Pilih atau seret satu / banyak file ke sini</span>
+                            <span class="file-hint">Mendukung multi-file: .py, .pdf, .docx, .xlsx, .csv, .json, .txt, .md</span>
                         </label>
                     </div>
 
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Konversi ke Markdown</button>
+                        <button type="submit" class="btn btn-primary">Konversi / Buat Bundle</button>
                     </div>
                 </form>
 
@@ -62,9 +74,13 @@
         function updateFileName(input) {
             const label = document.getElementById('label-text');
             if (input.files && input.files.length > 0) {
-                label.innerText = 'File dipilih: ' + input.files[0].name;
+                if (input.files.length === 1) {
+                    label.innerText = '1 file dipilih: ' + input.files[0].name;
+                } else {
+                    label.innerText = `${input.files.length} file dipilih untuk dijadikan Bundle`;
+                }
             } else {
-                label.innerText = 'Pilih atau seret file ke sini';
+                label.innerText = 'Pilih atau seret satu / banyak file ke sini';
             }
         }
 
