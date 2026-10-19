@@ -1,0 +1,23 @@
+# Virtual Environment
+venv/
+.env
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Runtime / Temp Files (Sesuai PRD)
+temp/
+*.log
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
