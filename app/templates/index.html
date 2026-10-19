@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File2MD — Universal File to Markdown</title>
     <link rel="stylesheet" href="/static/style.css">
-    <!-- HTMX untuk interaksi cepat tanpa reload halaman -->
-    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <!-- Local vendor scripts (100% offline & zero external network calls) -->
+    <script src="/static/vendor/htmx.min.js"></script>
+    <script src="/static/vendor/marked.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -81,6 +82,33 @@
                 }
             } else {
                 label.innerText = 'Pilih atau seret satu / banyak file ke sini';
+            }
+        }
+
+        function switchView(mode) {
+            const rawContainer = document.getElementById('raw-view-container');
+            const previewContainer = document.getElementById('preview-view-container');
+            const tabRaw = document.getElementById('tab-raw');
+            const tabPreview = document.getElementById('tab-preview');
+            const textarea = document.getElementById('markdown-editor');
+
+            if (!rawContainer || !previewContainer || !tabRaw || !tabPreview) return;
+
+            if (mode === 'raw') {
+                rawContainer.style.display = 'block';
+                previewContainer.style.display = 'none';
+                tabRaw.classList.add('active');
+                tabPreview.classList.remove('active');
+            } else {
+                rawContainer.style.display = 'none';
+                previewContainer.style.display = 'block';
+                tabRaw.classList.remove('active');
+                tabPreview.classList.add('active');
+
+                // Render Markdown secara instan menggunakan marked.js lokal
+                if (window.marked && textarea) {
+                    previewContainer.innerHTML = marked.parse(textarea.value);
+                }
             }
         }
 

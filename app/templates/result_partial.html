@@ -21,11 +21,22 @@
     </div>
     {% endif %}
 
-    <!-- Editor Textarea (FR-07 Edit) -->
-    <div class="editor-container">
-        <label for="markdown-editor" class="editor-label">Pratinjau & Edit Markdown:</label>
+    <!-- Dual View Switcher (Raw Console vs GitHub Rendered Preview) -->
+    <div class="view-tabs-header">
+        <div class="view-tabs">
+            <button type="button" id="tab-raw" class="tab-btn active" onclick="switchView('raw')">📝 Raw Editor</button>
+            <button type="button" id="tab-preview" class="tab-btn" onclick="switchView('preview')">👁️ GitHub Preview</button>
+        </div>
+        <span class="view-hint">Live render ala GitHub Markdown</span>
+    </div>
+
+    <!-- View 1: Raw Editor (Monospace Console) -->
+    <div id="raw-view-container" class="editor-container">
         <textarea id="markdown-editor" class="markdown-editor" rows="18">{{ markdown }}</textarea>
     </div>
+
+    <!-- View 2: Rendered GitHub Preview -->
+    <div id="preview-view-container" class="github-preview-box" style="display: none;"></div>
 
     <!-- Metadata Info -->
     <div class="meta-box">

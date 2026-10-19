@@ -30,26 +30,42 @@ server pribadi menggunakan Docker.
 -   Pemrosesan tanpa AI mengurangi kebutuhan resource dan memungkinkan
     proses lokal tanpa layanan eksternal.
 
-## 3. Tujuan Produk
+## 3. Tujuan Produk & Strategi Nilai Jual
 
+### 3.1 Tujuan Inti Produk
 1.  Mengonversi file yang didukung menjadi Markdown dengan isi sedekat
     mungkin dengan sumber.
 2.  Menggabungkan beberapa file menjadi satu dokumen Markdown dengan
     indeks dan batas sumber yang jelas.
-3.  Menyediakan preview, edit hasil, copy ke clipboard, dan download
-    `.md`.
-4.  Memproses file secara lokal tanpa mengirim data ke layanan
-    eksternal.
+3.  Menyediakan dual view (Raw Console & GitHub Rendered), edit hasil,
+    copy ke clipboard, dan download `.md`.
+4.  Memproses file secara lokal dengan privasi tinggi (Zero-Retention default).
 5.  Menyiapkan fondasi modular untuk Docker, server pribadi, OCR, format
-    baru, CLI, dan integrasi AI opsional di masa depan.
+    baru, CLI, dan integrasi Vision AI lokal.
 
-### Bukan tujuan MVP
+### 3.2 Strategi Nilai Jual & Model Freemium
+Aplikasi dirancang dengan strategi 3-Tier untuk akuisisi, retensi, dan monetisasi:
 
--   Interpretasi semantik atau ringkasan yang dihasilkan AI.
--   Akun pengguna, multi-user, histori permanen, atau kolaborasi.
--   Penyimpanan file permanen.
--   Rekonstruksi sempurna layout visual, grafik, atau diagram kompleks.
--   Dukungan untuk semua format sejak rilis pertama.
+-   **Tier 1: Guest (Tanpa Login — Bebas Pakai):**
+    - Akses instan tanpa registrasi via Web UI dan Clipboard Paste (`Ctrl + V`).
+    - Batas ukuran file 10 MB per file, bundle maksimal 3 file.
+    - Zero-retention: data langsung dihapus dari memori/disk setelah konversi.
+    - Rate limit harian moderat per IP.
+-   **Tier 2: Registered User (Free Login):**
+    - Meningkatkan batas upload (50 MB per file, bundle hingga 15 file).
+    - Cloud/Local Temporary History: riwayat konversi tersimpan selama 24 jam sebelum dihapus otomatis (TTL).
+    - Custom Export Presets: template pembungkus prompt AI (ChatGPT, Claude, Notion/Obsidian).
+    - Kuota Personal API Key gratis (100 request/bulan).
+-   **Tier 3: Pro / Enterprise (Premium Berbayar):**
+    - Diagram-to-Mermaid AI: mengubah foto flowchart/arsitektur menjadi kode Mermaid.js.
+    - Bulk Folder/ZIP Ingestion tanpa batas ukuran.
+    - Lisensi Self-Hosted Enterprise: paket Docker on-premise siap pakai untuk perusahaan/instansi dengan SSO dan audit log.
+    - Unlimited API Access.
+
+### 3.3 Kebijakan Penyimpanan & Auto-Cleanup (Hygiene)
+-   File upload sementara di `temp/` wajib dihapus seketika via `finally:` setelah proses selesai.
+-   Background janitor task membersihkan orphan temp files yang berumur > 30 menit.
+-   Riwayat konversi akun terdaftar memiliki masa kadaluarsa otomatis 24 jam (Time-To-Live).
 
 ## 4. Pengguna Sasaran
 
@@ -412,42 +428,51 @@ menjanjikan background jobs atau penyimpanan persisten.
 Target performa dan batas ukuran ditentukan berdasarkan pengujian lokal,
 bukan asumsi sebelum implementasi.
 
-## 15. Roadmap
+## 15. Roadmap Terstruktur (Berdasarkan Kecepatan & Kompleksitas Arsitektur)
 
-  -----------------------------------------------------------------------------------------
-  Fase                    Cakupan                 Definisi selesai          Status
-  ----------------------- ----------------------- ------------------------- ---------------
-  0\. Setup               Repo, venv, FastAPI,    Aplikasi berjalan lokal   ✅ Selesai
-                          konfigurasi, struktur   dan struktur dasar
-                          modular, health check   diuji.
+  ----------------------------------------------------------------------------------------------------------
+  Fase                              Cakupan                                              Status
+  --------------------------------- ---------------------------------------------------- -------------------
+  **Fase 0: Setup**                 Repo, venv, FastAPI, modular layout, smoke test      ✅ Selesai
 
-  1\. MVP Core            TXT, JSON, CSV;         Acceptance criteria P0    ✅ Selesai
-                          Convert; preview, edit, lulus.
-                          copy, download          
+  **Fase 1: MVP Core**              TXT, JSON, CSV, Web UI, copy, download               ✅ Selesai
 
-  2\. Dokumen             PDF teks, DOCX, XLSX,   Parser punya fixture      ✅ Selesai
-                          source code             dan test.
+  **Fase 2: Dokumen & Kode**        PDF teks, DOCX, XLSX, Source code 20+ bahasa         ✅ Selesai
 
-  3\. Bundle              Multi-file, source      Satu `.md` memuat         ✅ Selesai
-                          index, delimiter aman,  banyak sumber dengan
-                          laporan parsial         jelas.
+  **Fase 3: Bundle Mode**           Multi-file bundling, Source Index, partial report    ✅ Selesai
 
-  4\. Image/OCR           Metadata gambar dan OCR OCR tidak menjadi         ✅ Selesai
-                          lokal opsional          dependensi konversi
-                                                  inti.
+  **Fase 4: Image & Vision**        Metadata gambar, OCR Tesseract, Local Vision AI BLIP ✅ Selesai
 
-  5\. Container           Dockerfile, Compose,    Aplikasi dapat            ✅ Selesai
-                          health check, kebijakan dijalankan di
-                          temp                    container.
+  **Fase 5: Container**             Dockerfile non-root, Compose port 8031, HF volume    ✅ Selesai
 
-  6\. Server pribadi      Deployment LAN, reverse Akses terkendali dari     ⏳ Belum Mulai
-                          proxy/tunnel, kontrol   perangkat yang
-                          akses                   diizinkan.
+  ---                               ---                                                  ---
 
-  7\. Ekstensi            CLI, format tambahan,   Fitur baru tidak          ⏳ Belum Mulai
-                          AI enhancement opsional merusak conversion
-                                                  engine.
-  -----------------------------------------------------------------------------------------
+  **Fase 6: Quick Wins**            *(Paling Cepat — Frontend & Hygiene, 0 DB)*          ⏳ Siap Dikerjakan
+                                    1. Dual View (Raw Console vs GitHub Rendered)        
+                                    2. Background Janitor (Auto-cleanup temp > 30 menit) 
+                                    3. ZIP / Folder Ingestion (Auto-bundle archive)      
+
+  **Fase 7: CLI & Jaringan**        *(Menengah — Engine Extension, 0 Auth)*              ⏳ Belum Mulai
+                                    1. CLI Interface (`file2md convert`, `file2md bundle`)
+                                    2. Deployment LAN & Nginx reverse proxy              
+
+  ---                               ---                                                  ---
+
+  **Fase 8: Konsep Ulang — Auth**   *(Butuh Arsitektur Baru — Database & User System)*   ⏳ Belum Mulai
+                                    1. Database Engine (SQLite / PostgreSQL + ORM)       
+                                    2. User Authentication (Register/Login JWT)          
+                                    3. Rate Limiter Tier (Guest vs Free Registered)      
+
+  **Fase 9: Storage & Personalisasi**(Value Tier 2)*                                     ⏳ Belum Mulai
+                                    1. Temporary History (Auto-delete TTL 24 jam)        
+                                    2. Custom Export Presets (Obsidian, Claude, ChatGPT) 
+                                    3. Personal API Key generation                       
+
+  **Fase 10: Monetisasi & Pro**     *(Fitur Komersial & Revenue)*                        ⏳ Belum Mulai
+                                    1. Diagram-to-Mermaid Vision AI                      
+                                    2. Payment Gateway Integration                       
+                                    3. Enterprise Self-Hosted Package (On-Premise)       
+  ----------------------------------------------------------------------------------------------------------
 
 ## 16. Risiko dan Mitigasi
 
