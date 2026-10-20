@@ -1,10 +1,12 @@
+import hashlib
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Response, Request, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 from app.database import get_db
+from app.models.api_key import ApiKey
 from app.models.user import User
 from app.services.security import (
     create_access_token,
@@ -60,22 +62,43 @@ class TierQuotaResponse(BaseModel):
     max_bundle_files: int
 
 
-# --- Dependency untuk Mendapatkan User dari Token ---
+class ToggleTierRequest(BaseModel):
+    target_tier: str | None = None
+
+
+# --- Dependency untuk Mendapatkan User dari Token atau API Key ---
 def get_current_user_optional(
     request: Request,
     db: Annotated[Session, Depends(get_db)],
 ) -> User | None:
     """
-    Mendukung token dari Header 'Authorization: Bearer <token>' ATAU Cookie 'access_token'.
-    Mengembalikan None jika user adalah Guest (belum login).
+    Mendukung autentikasi via:
+    1. Header 'X-API-Key: f2md_live_...' (Personal API Key)
+    2. Header 'Authorization: Bearer <token>' (JWT)
+    3. Cookie 'access_token' (JWT Session Browser)
     """
+    # 1. Cek dari Header X-API-Key
+    api_key_header = request.headers.get("X-API-Key")
+    if api_key_header and api_key_header.startswith("f2md_"):
+        key_hash = hashlib.sha256(api_key_header.strip().encode()).hexdigest()
+        key_record = (
+            db.query(ApiKey)
+            .filter(ApiKey.key_hash == key_hash, ApiKey.is_active.is_(True))
+            .first()
+        )
+        if key_record and key_record.user and key_record.user.is_active:
+            # Perbarui waktu terakhir digunakan
+            key_record.last_used_at = datetime.now(timezone.utc)
+            db.commit()
+            return key_record.user
+
+    # 2. Cek dari Authorization Header (Bearer JWT)
     token = None
-    # 1. Cek dari Authorization Header
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
         token = auth_header.split(" ", 1)[1].strip()
 
-    # 2. Cek dari Cookie jika header kosong
+    # 3. Cek dari Cookie jika header kosong
     if not token:
         token = request.cookies.get("access_token")
 
@@ -178,3 +201,32 @@ def get_my_profile(current_user: Annotated[User, Depends(get_current_user)]):
         max_file_size_mb=max_size,
         max_bundle_files=max_bundle,
     )
+
+
+@router.post("/toggle-tier", summary="Ubah atau toggle tier akun (Free <-> PRO) untuk simulasi/testing")
+def toggle_tier(
+    response: Response,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+    req: ToggleTierRequest | None = None,
+):
+    target = req.target_tier.lower() if req and req.target_tier else None
+    if target in ("free", "pro"):
+        current_user.tier = target
+    else:
+        current_user.tier = "pro" if current_user.tier == "free" else "free"
+
+    db.commit()
+    db.refresh(current_user)
+
+    # Buat JWT baru dengan tier terbaru & perbarui cookie
+    new_token = create_access_token(
+        data={"sub": str(current_user.id), "email": current_user.email, "tier": current_user.tier}
+    )
+    response.set_cookie(key="access_token", value=new_token, httponly=True, samesite="lax")
+
+    return {
+        "message": f"Status tier berhasil diubah ke {current_user.tier.upper()}!",
+        "tier": current_user.tier,
+        "access_token": new_token,
+    }
