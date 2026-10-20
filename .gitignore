@@ -21,3 +21,8 @@ temp/
 .vscode/
 .idea/
 *.swp
+
+# Database SQLite
+data/
+*.db
+*.sqlite3

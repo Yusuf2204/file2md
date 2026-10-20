@@ -5,21 +5,26 @@ from fastapi.staticfiles import StaticFiles
 from app.routes.conversion import router as conversion_router
 from app.routes.pages import router as pages_router
 from app.services.janitor import start_janitor_loop
+from app.database import Base, engine
+from app.routes.auth import router as auth_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # STARTUP: Jalankan background task janitor (cek tiap 10 menit, hapus file > 30 menit)
+    # Inisialisasi tabel database SQLite (jika belum ada)
+    Base.metadata.create_all(bind=engine)
+
+    # STARTUP: Jalankan background task janitor
     janitor_task = asyncio.create_task(
         start_janitor_loop(temp_dir="temp", interval_seconds=600, max_age_seconds=1800)
     )
     yield
-    # SHUTDOWN: Batalkan task secara rapi saat server dimatikan
     janitor_task.cancel()
     try:
         await janitor_task
     except asyncio.CancelledError:
         pass
+
 
 
 app = FastAPI(
@@ -35,7 +40,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 # Daftarkan router
 app.include_router(conversion_router)
 app.include_router(pages_router)
-
+app.include_router(auth_router)
 
 @app.get("/health")
 def health_check() -> dict[str, str]:
