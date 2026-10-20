@@ -465,15 +465,19 @@ bukan asumsi sebelum implementasi.
                                     3. Rate Limiter Tier (Guest vs Free Registered)
                                     4. Modern Context7-Style UI/UX & Modal Auth   
 
-  **Fase 9: Storage & Personalisasi**(Value Tier 2)*                                     ⏳ Belum Mulai
-                                    1. Temporary History (Auto-delete TTL 24 jam)        
-                                    2. Custom Export Presets (Obsidian, Claude, ChatGPT) 
-                                    3. Personal API Key generation                       
+  **Fase 9: Storage & Personalisasi**(Value Tier 2)*                                     ✅ Selesai
+                                    1. Temporary History (Auto-delete TTL 24 jam & Janitor)
+                                    2. Custom Export Presets (ChatGPT, Claude, Obsidian, HTML)
+                                    3. Token-Efficient Image Markdown (Anti-bloat)
+                                    4. Personal API Key Management with PRO Tier Gating
+                                    5. Password Visibility Eye Toggle & Social Login (OAuth)
+                                    6. Bilingual i18n Language Toggle (ID 🇮🇩 / EN 🇬🇧)
 
-  **Fase 10: Monetisasi & Pro**     *(Fitur Komersial & Revenue)*                        ⏳ Belum Mulai
-                                    1. Diagram-to-Mermaid Vision AI                      
-                                    2. Payment Gateway Integration                       
-                                    3. Enterprise Self-Hosted Package (On-Premise)       
+  **Fase 10: Monetisasi & Pro**     *(Fitur Komersial & Fitur Lanjutan)*                 🎯 Target Berikutnya
+                                    1. Diagram-to-Mermaid Vision AI (Flowchart/Architecture)
+                                    2. Payment Gateway Integration (Midtrans / QRIS / Snap)
+                                    3. Search & Filter di Riwayat Konversi 24 Jam
+                                    4. Enterprise Self-Hosted Package (Nginx, Auto-backup)       
   ----------------------------------------------------------------------------------------------------------
 
 ## 16. Risiko dan Mitigasi
