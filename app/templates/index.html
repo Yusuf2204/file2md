@@ -207,6 +207,11 @@
     <script>
         let currentAuthMode = 'login';
         let confirmResolver = null;
+        let currentConversion = {
+            raw: '',
+            filename: '',
+            preset: 'chatgpt'
+        };
 
         // --- Inisialisasi Format Waktu Lokal Browser Pengguna ---
         function formatLocalTime(isoStr) {
@@ -397,6 +402,78 @@
             return String(text).replace(/[&<>"']/g, function (m) { return map[m]; });
         }
 
+        // --- Custom Export Presets Handler ---
+        function selectPreset(preset) {
+            const editor = document.getElementById('markdown-editor');
+            if (!editor) return;
+
+            if (!currentConversion || !currentConversion.raw) {
+                const card = document.querySelector('.result-card');
+                currentConversion = {
+                    raw: editor.value,
+                    filename: card ? (card.dataset.filename || 'document.md') : 'document.md',
+                    preset: 'chatgpt'
+                };
+            }
+            currentConversion.preset = preset;
+
+            // Highlight tombol preset aktif
+            document.querySelectorAll('.btn-preset').forEach(btn => {
+                if (btn.dataset.preset === preset) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            const raw = currentConversion.raw;
+            const fname = currentConversion.filename || 'document.md';
+            const cleanTitle = fname.replace(/\.[^/.]+$/, "").replace(/_/g, " ");
+
+            let formatted = raw;
+            let ext = '.md';
+
+            if (preset === 'claude') {
+                formatted = `<documents>\n  <document index="1">\n    <source>${fname}</source>\n    <document_content>\n${raw.trim()}\n    </document_content>\n  </document>\n</documents>`;
+                ext = '.xml';
+            } else if (preset === 'obsidian') {
+                const today = new Date().toISOString().slice(0, 10);
+                formatted = `---\ntitle: "${cleanTitle}"\nsource: "${fname}"\ncreated: ${today}\ntags:\n  - file2md\n  - ai-context\n---\n\n${raw.trim()}`;
+                ext = '.md';
+            } else if (preset === 'html') {
+                const bodyHtml = window.marked ? marked.parse(raw) : raw;
+                formatted = `<!DOCTYPE html>\n<html lang="id">\n<head>\n  <meta charset="UTF-8">\n  <title>${cleanTitle}</title>\n  <style>\n    body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; max-width: 820px; margin: 2rem auto; padding: 0 1.25rem; color: #1e293b; background: #ffffff; }\n    img { max-width: 100%; height: auto; border-radius: 8px; }\n    pre { background: #f8fafc; border: 1px solid #e2e8f0; padding: 1rem; border-radius: 8px; overflow-x: auto; }\n    table { border-collapse: collapse; width: 100%; margin: 1.5rem 0; }\n    th, td { border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: left; }\n    th { background: #f1f5f9; }\n    hr { border: none; border-top: 1px solid #e2e8f0; margin: 2rem 0; }\n  </style>\n</head>\n<body>\n  <article>\n    <h1>${cleanTitle}</h1>\n    <p><em>Sumber: ${fname}</em></p>\n    <hr>\n${bodyHtml}\n  </article>\n</body>\n</html>`;
+                ext = '.html';
+            }
+
+            editor.value = formatted;
+
+            // Update live preview jika sedang aktif
+            const previewContainer = document.getElementById('preview-view-container');
+            const tabPreview = document.getElementById('tab-preview');
+            if (previewContainer && tabPreview && tabPreview.classList.contains('active')) {
+                if (preset === 'html') {
+                    previewContainer.innerHTML = formatted;
+                } else if (window.marked) {
+                    previewContainer.innerHTML = marked.parse(formatted);
+                }
+            }
+
+            // Update label tombol unduh
+            const btnDownload = document.getElementById('btn-download');
+            if (btnDownload) {
+                btnDownload.innerText = `💾 Unduh ${ext}`;
+            }
+
+            const names = {
+                chatgpt: 'ChatGPT Standard',
+                claude: 'Claude XML',
+                obsidian: 'Obsidian Note',
+                html: 'HTML Rich'
+            };
+            showToast(`Format diubah ke ${names[preset] || preset}`, 'info', 1600);
+        }
+
         async function refreshHistory() {
             const listContainer = document.getElementById('history-list');
             const badgeCount = document.getElementById('history-count');
@@ -452,6 +529,13 @@
                 }
                 const data = await res.json();
 
+                // Simpan state konversi aktif
+                currentConversion = {
+                    raw: data.content,
+                    filename: data.filename,
+                    preset: 'chatgpt'
+                };
+
                 // Highlight item aktif di sidebar
                 document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
                 const activeItem = document.getElementById(`history-row-${id}`);
@@ -461,7 +545,7 @@
                 const container = document.getElementById('result-container');
                 const safeFilename = escapeHtml(data.filename);
                 container.innerHTML = `
-                    <div class="card result-card">
+                    <div class="card result-card" data-filename="${safeFilename}">
                         <div class="result-header">
                             <div>
                                 <h2>${safeFilename}</h2>
@@ -469,9 +553,21 @@
                             </div>
                             <div class="action-buttons">
                                 <button type="button" class="btn btn-secondary" id="btn-copy" onclick="copyMarkdown()">📋 Salin Markdown</button>
-                                <button type="button" class="btn btn-secondary" id="btn-download" data-filename="${safeFilename}" onclick="downloadMarkdown(this.dataset.filename)">💾 Unduh .md</button>
+                                <button type="button" class="btn btn-secondary" id="btn-download" onclick="downloadMarkdown('${safeFilename}')">💾 Unduh .md</button>
                             </div>
                         </div>
+
+                        <!-- Preset Format Selector Bar -->
+                        <div class="preset-bar">
+                            <span class="preset-label">Format Preset:</span>
+                            <div class="preset-pills">
+                                <button type="button" class="btn-preset active" data-preset="chatgpt" onclick="selectPreset('chatgpt')">🤖 ChatGPT</button>
+                                <button type="button" class="btn-preset" data-preset="claude" onclick="selectPreset('claude')">🧠 Claude XML</button>
+                                <button type="button" class="btn-preset" data-preset="obsidian" onclick="selectPreset('obsidian')">🔮 Obsidian</button>
+                                <button type="button" class="btn-preset" data-preset="html" onclick="selectPreset('html')">🌐 HTML Rich</button>
+                            </div>
+                        </div>
+
                         <div class="view-tabs-header">
                             <div class="view-tabs">
                                 <button type="button" id="tab-raw" class="tab-btn active" onclick="switchView('raw')">📝 Raw Editor</button>
@@ -547,8 +643,13 @@
                 tabRaw.classList.remove('active');
                 tabPreview.classList.add('active');
 
-                if (window.marked && textarea) {
-                    previewContainer.innerHTML = marked.parse(textarea.value);
+                if (previewContainer && textarea) {
+                    const preset = (currentConversion && currentConversion.preset) ? currentConversion.preset : 'chatgpt';
+                    if (preset === 'html') {
+                        previewContainer.innerHTML = textarea.value;
+                    } else if (window.marked) {
+                        previewContainer.innerHTML = marked.parse(textarea.value);
+                    }
                 }
             }
         }
@@ -561,7 +662,8 @@
                 const origText = btn.innerText;
                 btn.innerText = '✅ Disalin!';
                 setTimeout(() => { btn.innerText = origText; }, 2000);
-                showToast('Markdown berhasil disalin ke clipboard!', 'success');
+                const preset = (currentConversion && currentConversion.preset) ? currentConversion.preset.toUpperCase() : 'MARKDOWN';
+                showToast(`Konten (${preset}) berhasil disalin!`, 'success');
             }).catch(() => {
                 showToast('Gagal menyalin markdown ke clipboard.', 'error');
             });
@@ -571,17 +673,32 @@
             const textarea = document.getElementById('markdown-editor');
             if (!textarea) return;
             const content = textarea.value;
-            const blob = new Blob([content], { type: 'text/markdown;charset=utf-8;' });
+            const preset = (currentConversion && currentConversion.preset) ? currentConversion.preset : 'chatgpt';
+            let ext = '.md';
+            let mime = 'text/markdown;charset=utf-8;';
+
+            if (preset === 'claude') {
+                ext = '.xml';
+                mime = 'application/xml;charset=utf-8;';
+            } else if (preset === 'html') {
+                ext = '.html';
+                mime = 'text/html;charset=utf-8;';
+            }
+
+            const fname = (currentConversion && currentConversion.filename) ? currentConversion.filename : (filename || 'document');
+            const baseName = fname.replace(/\.[^/.]+$/, "");
+            const downloadName = `${baseName}${ext}`;
+
+            const blob = new Blob([content], { type: mime });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            const downloadName = filename.replace(/\.[^/.]+$/, "") + ".md";
             a.href = url;
             a.download = downloadName;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            showToast(`Mengunduh ${downloadName}`, 'info');
+            showToast(`Mengunduh berkas ${downloadName}`, 'info');
         }
 
         window.addEventListener('paste', function (e) {
@@ -622,6 +739,19 @@
                 if (event.detail.successful) {
                     refreshHistory();
                     showToast('File berhasil dikonversi ke Markdown!', 'success');
+
+                    // Inisialisasi state konversi aktif
+                    setTimeout(() => {
+                        const editor = document.getElementById('markdown-editor');
+                        const card = document.querySelector('.result-card');
+                        if (editor && card) {
+                            currentConversion = {
+                                raw: editor.value,
+                                filename: card.dataset.filename || 'document.md',
+                                preset: 'chatgpt'
+                            };
+                        }
+                    }, 50);
                 } else {
                     showToast('Konversi gagal atau terjadi kesalahan.', 'error');
                 }

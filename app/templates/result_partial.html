@@ -1,13 +1,13 @@
 {% if success %}
-<div class="card result-card">
+<div class="card result-card" data-filename="{{ filename }}">
     <div class="result-header">
         <div>
             <h3>Hasil Konversi: <code>{{ filename }}</code></h3>
             <span class="badge badge-success">Sukses</span>
         </div>
         <div class="action-buttons">
-            <button id="btn-copy" onclick="copyMarkdown()" class="btn btn-secondary">📋 Salin Markdown</button>
-            <button onclick="downloadMarkdown('{{ filename }}')" class="btn btn-secondary">💾 Unduh .md</button>
+            <button type="button" id="btn-copy" onclick="copyMarkdown()" class="btn btn-secondary">📋 Salin Markdown</button>
+            <button type="button" id="btn-download" onclick="downloadMarkdown('{{ filename }}')" class="btn btn-secondary">💾 Unduh .md</button>
         </div>
     </div>
 
@@ -20,6 +20,17 @@
         </ul>
     </div>
     {% endif %}
+
+    <!-- Preset Format Selector Bar -->
+    <div class="preset-bar">
+        <span class="preset-label">Format Preset:</span>
+        <div class="preset-pills">
+            <button type="button" class="btn-preset active" data-preset="chatgpt" onclick="selectPreset('chatgpt')">🤖 ChatGPT</button>
+            <button type="button" class="btn-preset" data-preset="claude" onclick="selectPreset('claude')">🧠 Claude XML</button>
+            <button type="button" class="btn-preset" data-preset="obsidian" onclick="selectPreset('obsidian')">🔮 Obsidian</button>
+            <button type="button" class="btn-preset" data-preset="html" onclick="selectPreset('html')">🌐 HTML Rich</button>
+        </div>
+    </div>
 
     <!-- Dual View Switcher (Raw Console vs GitHub Rendered Preview) -->
     <div class="view-tabs-header">

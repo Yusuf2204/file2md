@@ -88,9 +88,10 @@ class ImageParser(BaseParser):
         except Exception as exc:
             raise ParserError(f"Gagal membaca file gambar: {str(exc)}") from exc
 
-        # Susun Tabel Metadata Markdown
+        # Susun Konten Markdown Ringkas & Token-Efficient (Zero Base64 Bloat)
         md_lines = [
             f"### Informasi Gambar: `{file_path.name}`\n",
+            f"![{file_path.name}]({file_path.name})\n",
             "| Atribut | Nilai |",
             "| --- | --- |",
             f"| **Format** | {img_format} |",

@@ -855,3 +855,57 @@ kbd {
     background-color: #dc2626;
     box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
 }
+
+/* --- Export Preset Selector Bar (Context7 Style) --- */
+.preset-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.1rem;
+    padding: 0.65rem 0.85rem;
+    background-color: #070b14;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    flex-wrap: wrap;
+}
+
+.preset-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.preset-pills {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.btn-preset {
+    background-color: #0d1527;
+    color: var(--text-muted);
+    border: 1px solid #1a2436;
+    border-radius: 6px;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-preset:hover {
+    color: #ffffff;
+    border-color: #38bdf8;
+    background-color: #162038;
+}
+
+.btn-preset.active {
+    background-color: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border-color: #38bdf8;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}

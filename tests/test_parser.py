@@ -230,6 +230,7 @@ def test_image_parser_metadata_extraction(tmp_path: Path):
     assert "| **Dimensi** | 800 × 600 px |" in result.content
     assert "| **Rasio Aspek** | 4:3 |" in result.content
     assert "| **Mode Warna** | RGB |" in result.content
+    assert "data:image" not in result.content, "Hindari base64 bloat agar aman untuk chat AI"
     assert result.metadata["width"] == 800
     assert result.metadata["height"] == 600
     assert result.metadata["aspect_ratio"] == "4:3"

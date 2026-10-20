@@ -30,8 +30,8 @@ class LocalVisionService:
             model_id = "Salesforce/blip-image-captioning-base"
             logger.info(f"Memuat model vision open-source: {model_id}...")
 
-            self._processor = BlipProcessor.from_pretrained(model_id)
-            self._model = BlipForConditionalGeneration.from_pretrained(model_id)
+            self._processor = BlipProcessor.from_pretrained(model_id, local_files_only=True)
+            self._model = BlipForConditionalGeneration.from_pretrained(model_id, local_files_only=True)
             return True
         except Exception as exc:
             logger.warning(f"Gagal memuat local vision model: {exc}")
