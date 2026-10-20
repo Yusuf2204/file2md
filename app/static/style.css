@@ -633,6 +633,22 @@ body {
 }
 .github-preview-box th { background: #0f172a; }
 
+.github-preview-box.has-iframe {
+    padding: 0.5rem;
+    background-color: #0b1120;
+}
+
+.html-preview-frame {
+    width: 100%;
+    min-height: 520px;
+    height: 620px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: #ffffff;
+    display: block;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
 .meta-box {
     margin-top: 1rem;
     font-size: 0.8rem;

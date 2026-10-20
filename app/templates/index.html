@@ -904,6 +904,48 @@
             return String(text).replace(/[&<>"']/g, function (m) { return map[m]; });
         }
 
+        // --- Render Preview (Aman dari Style Leaking untuk HTML Presets) ---
+        function renderPreviewContent(content, preset) {
+            const previewContainer = document.getElementById('preview-view-container');
+            if (!previewContainer) return;
+
+            const isHtml = (preset === 'html') || /^\s*<!DOCTYPE\s+html/i.test(content) || /^\s*<html[\s>]/i.test(content);
+
+            if (isHtml) {
+                // Gunakan iframe terisolasi agar tag <style> dan body{} tidak bocor merusak CSS dark theme File2MD
+                previewContainer.innerHTML = '';
+                previewContainer.classList.add('has-iframe');
+
+                const iframe = document.createElement('iframe');
+                iframe.className = 'html-preview-frame';
+                iframe.setAttribute('sandbox', 'allow-same-origin');
+                iframe.srcdoc = content;
+
+                iframe.onload = function () {
+                    try {
+                        const doc = iframe.contentWindow.document || iframe.contentDocument;
+                        if (doc && (doc.documentElement || doc.body)) {
+                            const scrollHeight = Math.max(doc.documentElement.scrollHeight || 0, doc.body.scrollHeight || 0);
+                            if (scrollHeight > 250) {
+                                iframe.style.height = (scrollHeight + 40) + 'px';
+                            }
+                        }
+                    } catch (e) {
+                        iframe.style.height = '620px';
+                    }
+                };
+
+                previewContainer.appendChild(iframe);
+            } else {
+                previewContainer.classList.remove('has-iframe');
+                if (window.marked) {
+                    previewContainer.innerHTML = marked.parse(content);
+                } else {
+                    previewContainer.textContent = content;
+                }
+            }
+        }
+
         // --- Custom Export Presets Handler ---
         function selectPreset(preset) {
             const editor = document.getElementById('markdown-editor');
@@ -951,14 +993,9 @@
             editor.value = formatted;
 
             // Update live preview jika sedang aktif
-            const previewContainer = document.getElementById('preview-view-container');
             const tabPreview = document.getElementById('tab-preview');
-            if (previewContainer && tabPreview && tabPreview.classList.contains('active')) {
-                if (preset === 'html') {
-                    previewContainer.innerHTML = formatted;
-                } else if (window.marked) {
-                    previewContainer.innerHTML = marked.parse(formatted);
-                }
+            if (tabPreview && tabPreview.classList.contains('active')) {
+                renderPreviewContent(formatted, preset);
             }
 
             // Update label tombol unduh
@@ -1148,11 +1185,7 @@
 
                 if (previewContainer && textarea) {
                     const preset = (currentConversion && currentConversion.preset) ? currentConversion.preset : 'chatgpt';
-                    if (preset === 'html') {
-                        previewContainer.innerHTML = textarea.value;
-                    } else if (window.marked) {
-                        previewContainer.innerHTML = marked.parse(textarea.value);
-                    }
+                    renderPreviewContent(textarea.value, preset);
                 }
             }
         }
