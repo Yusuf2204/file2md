@@ -2,6 +2,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app.models.history import ConversionHistory
 from app.models.user import User
 from app.routes.auth import get_current_user_optional
 from app.routes.conversion import get_tier_limits
@@ -16,11 +19,22 @@ service = ConversionService()
 def index_page(
     request: Request,
     current_user: Annotated[User | None, Depends(get_current_user_optional)] = None,
+    db: Annotated[Session, Depends(get_db)] = None,
 ):
+    histories = []
+    if current_user and db:
+        histories = (
+            db.query(ConversionHistory)
+            .filter(ConversionHistory.user_id == current_user.id)
+            .order_by(ConversionHistory.created_at.desc())
+            .limit(10)
+            .all()
+        )
+
     return templates.TemplateResponse(
         request=request,
         name="index.html",
-        context={"user": current_user},
+        context={"user": current_user, "histories": histories},
     )
 
 
@@ -30,6 +44,7 @@ def convert_ui(
     files: list[UploadFile] = File(...),
     bundle_title: str = Form("Project Context"),
     current_user: Annotated[User | None, Depends(get_current_user_optional)] = None,
+    db: Annotated[Session, Depends(get_db)] = None,
 ):
     if not files:
         return templates.TemplateResponse(
@@ -51,6 +66,18 @@ def convert_ui(
                 mime_type=f.content_type,
                 max_file_size_bytes=max_size,
             )
+
+            # Simpan ke riwayat jika user sudah login
+            if current_user and db:
+                hist = ConversionHistory(
+                    user_id=current_user.id,
+                    filename=output.filename,
+                    content=output.markdown,
+                    file_type="single",
+                )
+                db.add(hist)
+                db.commit()
+
             return templates.TemplateResponse(
                 request=request,
                 name="result_partial.html",
@@ -94,12 +121,25 @@ def convert_ui(
             max_file_size_bytes=max_size,
         )
 
+        bundle_filename = f"{bundle_title.replace(' ', '_')}_bundle.md"
+
+        # Simpan bundle ke riwayat jika user sudah login
+        if current_user and db and bundle_out.success_files > 0:
+            hist = ConversionHistory(
+                user_id=current_user.id,
+                filename=bundle_filename,
+                content=bundle_out.markdown,
+                file_type="bundle",
+            )
+            db.add(hist)
+            db.commit()
+
         return templates.TemplateResponse(
             request=request,
             name="result_partial.html",
             context={
                 "success": True,
-                "filename": f"bundle_{len(files)}_files.md",
+                "filename": bundle_filename,
                 "markdown": bundle_out.markdown,
                 "metadata": {
                     "mode": "Bundle",

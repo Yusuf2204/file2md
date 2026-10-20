@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.history import ConversionHistory
@@ -18,6 +18,12 @@ class HistoryItemResponse(BaseModel):
     created_at: datetime
     expires_at: datetime
 
+    @field_serializer("created_at", "expires_at")
+    def serialize_dt(self, dt: datetime, _info) -> str:
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.isoformat()
+
 
 class HistoryDetailResponse(BaseModel):
     id: int
@@ -26,6 +32,12 @@ class HistoryDetailResponse(BaseModel):
     file_type: str | None
     created_at: datetime
     expires_at: datetime
+
+    @field_serializer("created_at", "expires_at")
+    def serialize_dt(self, dt: datetime, _info) -> str:
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.isoformat()
 
 
 @router.get("", response_model=list[HistoryItemResponse], summary="Daftar riwayat konversi user (24 jam)")

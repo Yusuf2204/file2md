@@ -10,6 +10,9 @@
     <script src="/static/vendor/marked.min.js"></script>
 </head>
 <body>
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
     <div class="app-layout">
         <!-- Top Navigation Bar (Context7 Style) -->
         <header class="navbar">
@@ -48,57 +51,105 @@
             </div>
         </header>
 
-        <!-- Main Content Area -->
         <main class="main-container">
-            <!-- Hero Header -->
+            <!-- Hero Header: Dipindah ke Atas Grid agar Seimbang & Simetris -->
             <section class="hero-section">
                 <h1 class="hero-title">File to Markdown untuk AI Context</h1>
-                <p class="hero-subtitle">Konversi dokumen, source code, data tabular, dan gambar ke Markdown bersih tanpa dependensi cloud.</p>
+                <p class="hero-subtitle">Konversi dokumen, kode, data tabular, dan gambar ke format Markdown bersih tanpa ketergantungan cloud.</p>
             </section>
 
-            <!-- Upload Card -->
-            <section class="card upload-card">
-                <form 
-                    hx-post="/convert-ui" 
-                    hx-target="#result-container" 
-                    hx-swap="innerHTML" 
-                    enctype="multipart/form-data"
-                    hx-indicator="#loading-indicator"
-                >
-                    <div class="bundle-input-wrapper">
-                        <input 
-                            type="text" 
-                            name="bundle_title" 
-                            placeholder="Judul Bundle (Opsional, default: Project Context)" 
-                            class="input-title"
+            <!-- Workspace Layout: Kolom Kiri (Riwayat) & Kolom Kanan (Canvas) Sejajar Sempurna -->
+            <div class="workspace-grid {% if user %}has-sidebar{% endif %}" id="workspace-layout">
+                
+                <!-- Left Sidebar: Riwayat 24 Jam -->
+                {% if user %}
+                <aside class="history-sidebar" id="history-sidebar">
+                    <div class="sidebar-card">
+                        <div class="sidebar-header">
+                            <div class="sidebar-title">
+                                <span class="sidebar-icon">🕒</span>
+                                <h3>Riwayat (24 Jam)</h3>
+                            </div>
+                            <span class="badge-count" id="history-count">{{ histories|length }} file</span>
+                        </div>
+                        <p class="sidebar-tip">Klik untuk membuka kembali</p>
+
+                        <div class="history-sidebar-list" id="history-list">
+                            {% if histories %}
+                                {% for h in histories %}
+                                <div class="sidebar-item" id="history-row-{{ h.id }}" data-id="{{ h.id }}" onclick="loadHistoryItem(this.dataset.id)">
+                                    <div class="sidebar-item-header">
+                                        <span class="item-tag tag-{{ h.file_type or 'single' }}">
+                                            {% if h.file_type == 'bundle' %}BUNDLE{% else %}FILE{% endif %}
+                                        </span>
+                                        <span class="item-time" data-utc="{% if h.created_at %}{{ h.created_at.isoformat() }}{% if not h.created_at.tzinfo %}Z{% endif %}{% endif %}">
+                                            --:--
+                                        </span>
+                                        <button type="button" class="btn-item-del" data-id="{{ h.id }}" onclick="event.stopPropagation(); deleteHistoryItem(this.dataset.id)" title="Hapus riwayat">&times;</button>
+                                    </div>
+                                    <div class="sidebar-item-name" title="{{ h.filename }}">
+                                        <span class="file-icon">{% if h.file_type == 'bundle' %}📦{% else %}📄{% endif %}</span>
+                                        <span class="name-text">{{ h.filename }}</span>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div id="history-empty-msg" class="sidebar-empty-msg">Belum ada riwayat konversi.</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </aside>
+                {% endif %}
+
+                <!-- Main Canvas Workspace -->
+                <div class="workspace-canvas">
+                    <!-- Upload Card -->
+                    <section class="card upload-card">
+                        <form 
+                            id="conversion-form"
+                            hx-post="/convert-ui" 
+                            hx-target="#result-container" 
+                            hx-swap="innerHTML" 
+                            enctype="multipart/form-data"
+                            hx-indicator="#loading-indicator"
                         >
-                    </div>
+                            <div class="bundle-input-wrapper">
+                                <input 
+                                    type="text" 
+                                    name="bundle_title" 
+                                    placeholder="Judul Bundle (Opsional, default: Project Context)" 
+                                    class="input-title"
+                                >
+                            </div>
 
-                    <div class="file-drop-area" id="drop-zone">
-                        <input type="file" name="files" id="file-input" multiple required onchange="updateFileName(this)">
-                        <label for="file-input" id="file-label">
-                            <span class="upload-icon">📁</span>
-                            <span id="label-text" class="label-primary">Pilih, seret file, atau tekan <kbd>Ctrl + V</kbd></span>
-                            <span class="file-hint">Mendukung dokumen tunggal, multi-file bundle, paste screenshot, atau arsip .ZIP</span>
-                        </label>
-                    </div>
+                            <div class="file-drop-area" id="drop-zone">
+                                <input type="file" name="files" id="file-input" multiple required onchange="updateFileName(this)">
+                                <label for="file-input" id="file-label">
+                                    <span class="upload-icon">📁</span>
+                                    <span id="label-text" class="label-primary">Pilih, seret file, atau tekan <kbd>Ctrl + V</kbd></span>
+                                    <span class="file-hint">Mendukung dokumen tunggal, multi-file bundle, paste screenshot, atau arsip .ZIP</span>
+                                </label>
+                            </div>
 
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-submit">
-                            <span>⚡ Konversi ke Markdown</span>
-                        </button>
-                    </div>
-                </form>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-submit">
+                                    <span>⚡ Konversi ke Markdown</span>
+                                </button>
+                            </div>
+                        </form>
 
-                <!-- Loading Indicator -->
-                <div id="loading-indicator" class="htmx-indicator loading-box">
-                    <div class="spinner"></div>
-                    <span>Memproses dan mengekstrak konteks file...</span>
+                        <!-- Loading Indicator -->
+                        <div id="loading-indicator" class="htmx-indicator loading-box">
+                            <div class="spinner"></div>
+                            <span>Memproses dan mengekstrak konteks file...</span>
+                        </div>
+                    </section>
+
+                    <!-- Target Hasil Konversi -->
+                    <section id="result-container" class="result-area"></section>
                 </div>
-            </section>
 
-            <!-- Target Hasil Konversi -->
-            <section id="result-container" class="result-area"></section>
+            </div>
         </main>
 
         <footer class="app-footer">
@@ -109,7 +160,6 @@
     <!-- Modal Login / Register Modern (Context7 Inspired) -->
     <div id="auth-modal" class="modal-backdrop" style="display: none;" onclick="handleBackdropClick(event)">
         <div class="modal-card">
-            <!-- Header Modal & Close Button -->
             <div class="modal-top">
                 <div class="modal-tabs">
                     <button type="button" id="tab-modal-login" class="modal-tab active" onclick="switchAuthTab('login')">Masuk</button>
@@ -119,7 +169,7 @@
             </div>
 
             <div class="modal-body">
-                <p id="modal-desc" class="modal-desc">Masuk untuk menikmati batas upload hingga <strong>50 MB</strong> dan bundle <strong>15 file</strong>.</p>
+                <p id="modal-desc" class="modal-desc">Masuk untuk menikmati kuota upload hingga <strong>50 MB</strong> dan riwayat <strong>24 jam</strong>.</p>
                 <div id="modal-alert" class="modal-alert" style="display: none;"></div>
 
                 <form onsubmit="handleAuthSubmit(event)">
@@ -139,9 +189,116 @@
         </div>
     </div>
 
+    <!-- Modal Konfirmasi Hapus / Tindakan (Context7 Style) -->
+    <div id="confirm-modal" class="modal-backdrop" style="display: none;" onclick="handleConfirmBackdrop(event)">
+        <div class="confirm-card">
+            <div class="confirm-header">
+                <span class="confirm-icon" id="confirm-icon">⚠️</span>
+                <h3 class="confirm-title" id="confirm-title">Konfirmasi</h3>
+            </div>
+            <p class="confirm-body" id="confirm-body">Apakah Anda yakin ingin menghapus data ini?</p>
+            <div class="confirm-actions">
+                <button type="button" class="btn btn-secondary" onclick="resolveConfirm(false)">Batal</button>
+                <button type="button" class="btn btn-danger-confirm" id="confirm-action-btn" onclick="resolveConfirm(true)">Hapus</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let currentAuthMode = 'login';
+        let confirmResolver = null;
 
+        // --- Inisialisasi Format Waktu Lokal Browser Pengguna ---
+        function formatLocalTime(isoStr) {
+            if (!isoStr) return '';
+            if (!isoStr.endsWith('Z') && !isoStr.includes('+')) {
+                isoStr += 'Z';
+            }
+            const d = new Date(isoStr);
+            if (isNaN(d.getTime())) return '';
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        }
+
+        function initLocalTimes() {
+            document.querySelectorAll('.item-time[data-utc]').forEach(el => {
+                const utc = el.dataset.utc;
+                if (utc) {
+                    el.innerText = formatLocalTime(utc);
+                    const d = new Date(utc.endsWith('Z') || utc.includes('+') ? utc : utc + 'Z');
+                    if (!isNaN(d.getTime())) {
+                        el.title = d.toLocaleString();
+                    }
+                }
+            });
+        }
+        initLocalTimes();
+
+        // --- Sistem Toast Notifikasi Context7 ---
+        function showToast(message, type = 'info', duration = 3200) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const icons = {
+                success: '✅',
+                error: '❌',
+                info: 'ℹ️'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <span class="toast-icon">${icons[type] || 'ℹ️'}</span>
+                <span class="toast-message">${escapeHtml(message)}</span>
+                <button type="button" class="toast-close" title="Tutup">&times;</button>
+            `;
+
+            const closeBtn = toast.querySelector('.toast-close');
+            const dismiss = () => {
+                toast.classList.add('toast-hide');
+                setTimeout(() => toast.remove(), 250);
+            };
+
+            closeBtn.addEventListener('click', dismiss);
+            container.appendChild(toast);
+
+            if (duration > 0) {
+                setTimeout(dismiss, duration);
+            }
+        }
+
+        // --- Dialog Konfirmasi Modern Context7 ---
+        function showConfirm({ title = 'Konfirmasi', message = 'Apakah Anda yakin?', icon = '⚠️', confirmText = 'Konfirmasi', isDanger = true }) {
+            return new Promise((resolve) => {
+                confirmResolver = resolve;
+                document.getElementById('confirm-title').innerText = title;
+                document.getElementById('confirm-body').innerText = message;
+                document.getElementById('confirm-icon').innerText = icon;
+                const btn = document.getElementById('confirm-action-btn');
+                btn.innerText = confirmText;
+                if (isDanger) {
+                    btn.className = 'btn btn-danger-confirm';
+                } else {
+                    btn.className = 'btn btn-primary';
+                }
+                document.getElementById('confirm-modal').style.display = 'flex';
+            });
+        }
+
+        function resolveConfirm(result) {
+            document.getElementById('confirm-modal').style.display = 'none';
+            if (confirmResolver) {
+                confirmResolver(result);
+                confirmResolver = null;
+            }
+        }
+
+        function handleConfirmBackdrop(e) {
+            if (e.target.id === 'confirm-modal') {
+                resolveConfirm(false);
+            }
+        }
+
+        // --- Modal Auth Handlers ---
         function openAuthModal(mode) {
             currentAuthMode = mode;
             switchAuthTab(mode);
@@ -160,13 +317,14 @@
             }
         }
 
-        // Tutup modal jika tombol ESC ditekan
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') closeAuthModal();
+            if (e.key === 'Escape') {
+                closeAuthModal();
+                resolveConfirm(false);
+            }
         });
 
         function switchAuthTab(mode) {
-            currentAuthMode = mode;
             const tabLogin = document.getElementById('tab-modal-login');
             const tabReg = document.getElementById('tab-modal-register');
             const desc = document.getElementById('modal-desc');
@@ -175,7 +333,7 @@
             if (mode === 'login') {
                 tabLogin.classList.add('active');
                 tabReg.classList.remove('active');
-                desc.innerHTML = 'Masuk untuk menikmati kuota upload hingga <strong>50 MB</strong> dan bundle <strong>15 file</strong>.';
+                desc.innerHTML = 'Masuk untuk menikmati kuota upload hingga <strong>50 MB</strong> dan riwayat <strong>24 jam</strong>.';
                 submitBtn.innerHTML = '<span>Masuk Sekarang</span>';
             } else {
                 tabLogin.classList.remove('active');
@@ -227,6 +385,135 @@
             window.location.reload();
         }
 
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return String(text).replace(/[&<>"']/g, function (m) { return map[m]; });
+        }
+
+        async function refreshHistory() {
+            const listContainer = document.getElementById('history-list');
+            const badgeCount = document.getElementById('history-count');
+            if (!listContainer) return; // Jika user adalah guest, sidebar tidak dirender
+
+            try {
+                const res = await fetch('/api/history');
+                if (!res.ok) return;
+                const items = await res.json();
+
+                if (badgeCount) {
+                    badgeCount.innerText = `${items.length} file`;
+                }
+
+                if (!items || items.length === 0) {
+                    listContainer.innerHTML = '<div id="history-empty-msg" class="sidebar-empty-msg">Belum ada riwayat konversi.</div>';
+                    return;
+                }
+
+                listContainer.innerHTML = items.map(h => {
+                    const timeStr = formatLocalTime(h.created_at);
+                    const isBundle = h.file_type === 'bundle';
+                    const tagLabel = isBundle ? 'BUNDLE' : 'FILE';
+                    const tagClass = isBundle ? 'tag-bundle' : 'tag-single';
+                    const icon = isBundle ? '📦' : '📄';
+                    const safeName = escapeHtml(h.filename);
+
+                    return `
+                        <div class="sidebar-item" id="history-row-${h.id}" data-id="${h.id}" onclick="loadHistoryItem(this.dataset.id)">
+                            <div class="sidebar-item-header">
+                                <span class="item-tag ${tagClass}">${tagLabel}</span>
+                                <span class="item-time">${timeStr}</span>
+                                <button type="button" class="btn-item-del" data-id="${h.id}" onclick="event.stopPropagation(); deleteHistoryItem(this.dataset.id)" title="Hapus riwayat">&times;</button>
+                            </div>
+                            <div class="sidebar-item-name" title="${safeName}">
+                                <span class="file-icon">${icon}</span>
+                                <span class="name-text">${safeName}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error('Gagal memperbarui riwayat:', err);
+            }
+        }
+
+        async function loadHistoryItem(id) {
+            try {
+                const res = await fetch(`/api/history/${id}`);
+                if (!res.ok) {
+                    showToast('Gagal mengambil detail riwayat.', 'error');
+                    return;
+                }
+                const data = await res.json();
+
+                // Highlight item aktif di sidebar
+                document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+                const activeItem = document.getElementById(`history-row-${id}`);
+                if (activeItem) activeItem.classList.add('active');
+
+                // Render Markdown hasil ke dalam result-container
+                const container = document.getElementById('result-container');
+                const safeFilename = escapeHtml(data.filename);
+                container.innerHTML = `
+                    <div class="card result-card">
+                        <div class="result-header">
+                            <div>
+                                <h2>${safeFilename}</h2>
+                                <span class="badge badge-success">Dibuka dari Riwayat 24 Jam</span>
+                            </div>
+                            <div class="action-buttons">
+                                <button type="button" class="btn btn-secondary" id="btn-copy" onclick="copyMarkdown()">📋 Salin Markdown</button>
+                                <button type="button" class="btn btn-secondary" id="btn-download" data-filename="${safeFilename}" onclick="downloadMarkdown(this.dataset.filename)">💾 Unduh .md</button>
+                            </div>
+                        </div>
+                        <div class="view-tabs-header">
+                            <div class="view-tabs">
+                                <button type="button" id="tab-raw" class="tab-btn active" onclick="switchView('raw')">📝 Raw Editor</button>
+                                <button type="button" id="tab-preview" class="tab-btn" onclick="switchView('preview')">👁️ GitHub Preview</button>
+                            </div>
+                            <span class="view-hint">Live render ala GitHub Markdown</span>
+                        </div>
+                        <div id="raw-view-container" class="editor-container">
+                            <textarea id="markdown-editor" class="markdown-editor" rows="18">${escapeHtml(data.content)}</textarea>
+                        </div>
+                        <div id="preview-view-container" class="github-preview-box" style="display: none;"></div>
+                    </div>
+                `;
+                container.scrollIntoView({ behavior: 'smooth' });
+            } catch (err) {
+                showToast('Terjadi kesalahan saat membuka riwayat.', 'error');
+            }
+        }
+
+        async function deleteHistoryItem(id) {
+            const confirmed = await showConfirm({
+                title: 'Hapus Riwayat?',
+                message: 'File ini akan dihapus dari riwayat konversi 24 jam Anda.',
+                icon: '🗑️',
+                confirmText: 'Ya, Hapus',
+                isDanger: true,
+            });
+            if (!confirmed) return;
+
+            try {
+                const res = await fetch(`/api/history/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    await refreshHistory();
+                    showToast('Riwayat berhasil dihapus.', 'success');
+                } else {
+                    showToast('Gagal menghapus riwayat dari server.', 'error');
+                }
+            } catch (err) {
+                showToast('Terjadi kesalahan jaringan saat menghapus riwayat.', 'error');
+            }
+        }
+
         function updateFileName(input) {
             const label = document.getElementById('label-text');
             if (input.files && input.files.length > 0) {
@@ -274,6 +561,9 @@
                 const origText = btn.innerText;
                 btn.innerText = '✅ Disalin!';
                 setTimeout(() => { btn.innerText = origText; }, 2000);
+                showToast('Markdown berhasil disalin ke clipboard!', 'success');
+            }).catch(() => {
+                showToast('Gagal menyalin markdown ke clipboard.', 'error');
             });
         }
 
@@ -291,6 +581,7 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            showToast(`Mengunduh ${downloadName}`, 'info');
         }
 
         window.addEventListener('paste', function (e) {
@@ -321,6 +612,18 @@
                         htmx.trigger(form, 'submit');
                     }
                     break;
+                }
+            }
+        });
+
+        // Otomatis refresh sidebar riwayat & tampilkan toast setelah konversi berhasil via HTMX
+        document.addEventListener('htmx:afterRequest', function (event) {
+            if (event.detail.target && event.detail.target.id === 'result-container') {
+                if (event.detail.successful) {
+                    refreshHistory();
+                    showToast('File berhasil dikonversi ke Markdown!', 'success');
+                } else {
+                    showToast('Konversi gagal atau terjadi kesalahan.', 'error');
                 }
             }
         });
