@@ -32,11 +32,18 @@ class ConversionService:
     def __init__(self, detector: FormatDetector | None = None):
         self.detector = detector or FormatDetector()
 
-    def convert_stream(self, file_obj: BinaryIO, filename: str, mime_type: str | None = None) -> ConversionOutput:
+    def convert_stream(
+        self,
+        file_obj: BinaryIO,
+        filename: str,
+        mime_type: str | None = None,
+        max_file_size_bytes: int | None = None,
+    ) -> ConversionOutput:
         """
         Menerima stream file, menyimpannya di file sementara yang aman (FR-11),
-        memvalidasi ukuran, melakukan parsing, dan memastikan file sementara dihapus.
+        memvalidasi ukuran sesuai kuota tier, melakukan parsing, dan menghapus file sementara.
         """
+        max_limit = max_file_size_bytes or self.MAX_FILE_SIZE_BYTES
         temp_dir = Path("temp")
         temp_dir.mkdir(exist_ok=True)
 
@@ -45,7 +52,7 @@ class ConversionService:
         temp_path = Path(temp_file.name)
 
         try:
-            # 1. Tulis ke file sementara dengan batas ukuran (Resource limits FR-02)
+            # 1. Tulis ke file sementara dengan batas ukuran dinamis
             total_bytes = 0
             chunk_size = 64 * 1024  # 64 KB
 
@@ -54,9 +61,11 @@ class ConversionService:
                 if not chunk:
                     break
                 total_bytes += len(chunk)
-                if total_bytes > self.MAX_FILE_SIZE_BYTES:
+                if total_bytes > max_limit:
+                    limit_mb = max_limit // (1024 * 1024)
                     raise ValueError(
-                        f"Ukuran file '{filename}' melebihi batas maksimum {self.MAX_FILE_SIZE_BYTES // (1024 * 1024)} MB."
+                        f"Ukuran file '{filename}' melebihi batas tier Anda ({limit_mb} MB). "
+                        f"Silakan login atau upgrade untuk batas lebih besar."
                     )
                 temp_file.write(chunk)
 
@@ -114,6 +123,7 @@ class ConversionService:
         self,
         files: list[tuple[BinaryIO, str, str | None]],
         title: str = "Project Context",
+        max_file_size_bytes: int | None = None,
     ) -> BundleOutput:
         """
         Mengonversi banyak file sekaligus dan menggabungkannya menjadi satu Markdown (FR-05).
@@ -127,7 +137,12 @@ class ConversionService:
 
         for file_obj, filename, mime_type in files:
             try:
-                out = self.convert_stream(file_obj=file_obj, filename=filename, mime_type=mime_type)
+                out = self.convert_stream(
+                    file_obj=file_obj,
+                    filename=filename,
+                    mime_type=mime_type,
+                    max_file_size_bytes=max_file_size_bytes,
+                )
                 desc = self._describe_file(out)
                 items.append(BundleItem(
                     filename=filename,
