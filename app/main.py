@@ -3,10 +3,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from app.database import Base, engine
-from app.models import User, ConversionHistory  # Daftarkan model tabel
+from app.models import User, ConversionHistory, ApiKey  # Daftarkan model tabel
+from app.routes.api_keys import router as api_keys_router
 from app.routes.auth import router as auth_router
 from app.routes.conversion import router as conversion_router
 from app.routes.history import router as history_router
+from app.routes.oauth import router as oauth_router
 from app.routes.pages import router as pages_router
 from app.services.janitor import start_janitor_loop
 
@@ -43,6 +45,8 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.include_router(conversion_router)
 app.include_router(auth_router)
 app.include_router(history_router)
+app.include_router(api_keys_router)
+app.include_router(oauth_router)
 app.include_router(pages_router)
 
 
