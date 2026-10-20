@@ -2,12 +2,12 @@
 <div class="card result-card" data-filename="{{ filename }}">
     <div class="result-header">
         <div>
-            <h3>Hasil Konversi: <code>{{ filename }}</code></h3>
-            <span class="badge badge-success">Sukses</span>
+            <h3><span data-i18n="result_title">Hasil Konversi:</span> <code>{{ filename }}</code></h3>
+            <span class="badge badge-success" data-i18n="badge_success">Sukses</span>
         </div>
         <div class="action-buttons">
-            <button type="button" id="btn-copy" onclick="copyMarkdown()" class="btn btn-secondary">📋 Salin Markdown</button>
-            <button type="button" id="btn-download" onclick="downloadMarkdown('{{ filename }}')" class="btn btn-secondary">💾 Unduh .md</button>
+            <button type="button" id="btn-copy" onclick="copyMarkdown()" class="btn btn-secondary" data-i18n="btn_copy">📋 Salin Markdown</button>
+            <button type="button" id="btn-download" onclick="downloadMarkdown('{{ filename }}')" class="btn btn-secondary" data-i18n="btn_download">💾 Unduh .md</button>
         </div>
     </div>
 
@@ -23,7 +23,7 @@
 
     <!-- Preset Format Selector Bar -->
     <div class="preset-bar">
-        <span class="preset-label">Format Preset:</span>
+        <span class="preset-label" data-i18n="preset_label">Format Preset:</span>
         <div class="preset-pills">
             <button type="button" class="btn-preset active" data-preset="chatgpt" onclick="selectPreset('chatgpt')">🤖 ChatGPT</button>
             <button type="button" class="btn-preset" data-preset="claude" onclick="selectPreset('claude')">🧠 Claude XML</button>
@@ -35,10 +35,10 @@
     <!-- Dual View Switcher (Raw Console vs GitHub Rendered Preview) -->
     <div class="view-tabs-header">
         <div class="view-tabs">
-            <button type="button" id="tab-raw" class="tab-btn active" onclick="switchView('raw')">📝 Raw Editor</button>
-            <button type="button" id="tab-preview" class="tab-btn" onclick="switchView('preview')">👁️ GitHub Preview</button>
+            <button type="button" id="tab-raw" class="tab-btn active" onclick="switchView('raw')" data-i18n="tab_raw">📝 Raw Editor</button>
+            <button type="button" id="tab-preview" class="tab-btn" onclick="switchView('preview')" data-i18n="tab_preview">👁️ GitHub Preview</button>
         </div>
-        <span class="view-hint">Live render ala GitHub Markdown</span>
+        <span class="view-hint" data-i18n="view_hint">Live render ala GitHub Markdown</span>
     </div>
 
     <!-- View 1: Raw Editor (Monospace Console) -->

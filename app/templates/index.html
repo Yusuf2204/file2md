@@ -24,12 +24,19 @@
                 </div>
 
                 <div class="nav-auth">
+                    <!-- Toggle Bahasa ID / EN -->
+                    <div class="lang-toggle-pill" role="group" aria-label="Language Selector">
+                        <button type="button" class="btn-lang active" id="btn-lang-id" onclick="setLanguage('id')">ID</button>
+                        <button type="button" class="btn-lang" id="btn-lang-en" onclick="setLanguage('en')">EN</button>
+                    </div>
+
                     {% if user %}
                     <div class="user-profile-pill">
                         <span class="status-dot dot-active"></span>
                         <span class="user-email">{{ user.email }}</span>
-                        <span class="tier-pill">{{ user.tier.upper() }} (50MB)</span>
-                        <button type="button" class="btn-icon-logout" onclick="logout()" title="Keluar dari akun">
+                        <span class="tier-pill tier-{{ user.tier }}">{{ user.tier.upper() }} ({{ '100MB' if user.tier == 'pro' else '50MB' }})</span>
+                        <button type="button" class="btn-nav-key" onclick="openApiKeyModal()" data-i18n-title="btn_apikeys_title" title="Pengaturan Personal API Key">🔑 API Keys{% if user.tier != 'pro' %} <span class="badge-pro-tag">PRO</span>{% endif %}</button>
+                        <button type="button" class="btn-icon-logout" onclick="logout()" data-i18n-title="btn_logout_title" title="Keluar dari akun">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                                 <polyline points="16 17 21 12 16 7"></polyline>
@@ -40,11 +47,11 @@
                     {% else %}
                     <div class="guest-indicator">
                         <span class="status-dot dot-guest"></span>
-                        <span class="guest-text">Tamu <span class="guest-quota">(10 MB)</span></span>
+                        <span class="guest-text"><span data-i18n="guest_label">Tamu</span> <span class="guest-quota">(10 MB)</span></span>
                     </div>
                     <div class="auth-btn-group">
-                        <button type="button" class="btn-nav btn-ghost" onclick="openAuthModal('login')">Masuk</button>
-                        <button type="button" class="btn-nav btn-accent" onclick="openAuthModal('register')">Daftar Gratis</button>
+                        <button type="button" class="btn-nav btn-ghost" onclick="openAuthModal('login')" data-i18n="btn_signin">Masuk</button>
+                        <button type="button" class="btn-nav btn-accent" onclick="openAuthModal('register')" data-i18n="btn_signup">Daftar Gratis</button>
                     </div>
                     {% endif %}
                 </div>
@@ -54,8 +61,8 @@
         <main class="main-container">
             <!-- Hero Header: Dipindah ke Atas Grid agar Seimbang & Simetris -->
             <section class="hero-section">
-                <h1 class="hero-title">File to Markdown untuk AI Context</h1>
-                <p class="hero-subtitle">Konversi dokumen, kode, data tabular, dan gambar ke format Markdown bersih tanpa ketergantungan cloud.</p>
+                <h1 class="hero-title" data-i18n="hero_title">File to Markdown untuk AI Context</h1>
+                <p class="hero-subtitle" data-i18n="hero_subtitle">Konversi dokumen, kode, data tabular, dan gambar ke format Markdown bersih tanpa ketergantungan cloud.</p>
             </section>
 
             <!-- Workspace Layout: Kolom Kiri (Riwayat) & Kolom Kanan (Canvas) Sejajar Sempurna -->
@@ -68,11 +75,11 @@
                         <div class="sidebar-header">
                             <div class="sidebar-title">
                                 <span class="sidebar-icon">🕒</span>
-                                <h3>Riwayat (24 Jam)</h3>
+                                <h3 data-i18n="sidebar_title">Riwayat (24 Jam)</h3>
                             </div>
                             <span class="badge-count" id="history-count">{{ histories|length }} file</span>
                         </div>
-                        <p class="sidebar-tip">Klik untuk membuka kembali</p>
+                        <p class="sidebar-tip" data-i18n="sidebar_tip">Klik untuk membuka kembali</p>
 
                         <div class="history-sidebar-list" id="history-list">
                             {% if histories %}
@@ -94,7 +101,7 @@
                                 </div>
                                 {% endfor %}
                             {% else %}
-                                <div id="history-empty-msg" class="sidebar-empty-msg">Belum ada riwayat konversi.</div>
+                                <div id="history-empty-msg" class="sidebar-empty-msg" data-i18n="sidebar_empty">Belum ada riwayat konversi.</div>
                             {% endif %}
                         </div>
                     </div>
@@ -117,6 +124,7 @@
                                 <input 
                                     type="text" 
                                     name="bundle_title" 
+                                    data-i18n-placeholder="bundle_placeholder"
                                     placeholder="Judul Bundle (Opsional, default: Project Context)" 
                                     class="input-title"
                                 >
@@ -126,14 +134,14 @@
                                 <input type="file" name="files" id="file-input" multiple required onchange="updateFileName(this)">
                                 <label for="file-input" id="file-label">
                                     <span class="upload-icon">📁</span>
-                                    <span id="label-text" class="label-primary">Pilih, seret file, atau tekan <kbd>Ctrl + V</kbd></span>
-                                    <span class="file-hint">Mendukung dokumen tunggal, multi-file bundle, paste screenshot, atau arsip .ZIP</span>
+                                    <span id="label-text" class="label-primary" data-i18n="dropzone_label">Pilih, seret file, atau tekan <kbd>Ctrl + V</kbd></span>
+                                    <span class="file-hint" data-i18n="dropzone_hint">Mendukung dokumen tunggal, multi-file bundle, paste screenshot, atau arsip .ZIP</span>
                                 </label>
                             </div>
 
                             <div class="form-actions">
                                 <button type="submit" class="btn btn-submit">
-                                    <span>⚡ Konversi ke Markdown</span>
+                                    <span data-i18n="btn_convert">⚡ Konversi ke Markdown</span>
                                 </button>
                             </div>
                         </form>
@@ -141,7 +149,7 @@
                         <!-- Loading Indicator -->
                         <div id="loading-indicator" class="htmx-indicator loading-box">
                             <div class="spinner"></div>
-                            <span>Memproses dan mengekstrak konteks file...</span>
+                            <span data-i18n="loading_text">Memproses dan mengekstrak konteks file...</span>
                         </div>
                     </section>
 
@@ -153,7 +161,7 @@
         </main>
 
         <footer class="app-footer">
-            <p>File2MD &bull; Zero-Cloud Retention &bull; Berjalan 100% lokal pada Docker port 8031</p>
+            <p data-i18n="footer_text">File2MD &bull; Zero-Cloud Retention &bull; Berjalan 100% lokal pada Docker port 8031</p>
         </footer>
     </div>
 
@@ -162,8 +170,8 @@
         <div class="modal-card">
             <div class="modal-top">
                 <div class="modal-tabs">
-                    <button type="button" id="tab-modal-login" class="modal-tab active" onclick="switchAuthTab('login')">Masuk</button>
-                    <button type="button" id="tab-modal-register" class="modal-tab" onclick="switchAuthTab('register')">Buat Akun</button>
+                    <button type="button" id="tab-modal-login" class="modal-tab active" onclick="switchAuthTab('login')" data-i18n="tab_login">Masuk</button>
+                    <button type="button" id="tab-modal-register" class="modal-tab" onclick="switchAuthTab('register')" data-i18n="tab_register">Buat Akun</button>
                 </div>
                 <button type="button" class="modal-close-btn" onclick="closeAuthModal()" title="Tutup (Esc)">&times;</button>
             </div>
@@ -174,17 +182,126 @@
 
                 <form onsubmit="handleAuthSubmit(event)">
                     <div class="form-field">
-                        <label for="auth-email">Alamat Email</label>
+                        <label for="auth-email" data-i18n="label_email">Alamat Email</label>
                         <input type="email" id="auth-email" required placeholder="nama@email.com" class="text-input" autocomplete="email">
                     </div>
                     <div class="form-field">
-                        <label for="auth-password">Password</label>
-                        <input type="password" id="auth-password" required minlength="6" placeholder="Minimal 6 karakter" class="text-input" autocomplete="current-password">
+                        <label for="auth-password" data-i18n="label_password">Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="auth-password" required minlength="6" data-i18n-placeholder="password_placeholder" placeholder="Minimal 6 karakter" class="text-input" autocomplete="current-password">
+                            <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility()" title="Lihat/Sembunyikan password" aria-label="Toggle password visibility">
+                                <svg id="eye-icon-show" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                <svg id="eye-icon-hide" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-modal-submit" id="modal-submit-btn">
-                        <span>Masuk Sekarang</span>
+                        <span data-i18n="btn_auth_submit_login">Masuk Sekarang</span>
                     </button>
                 </form>
+
+                <div class="auth-divider">
+                    <span data-i18n="auth_divider">atau lanjutkan dengan</span>
+                </div>
+
+                <div class="social-login-group">
+                    <button type="button" class="btn-social btn-google" onclick="handleSocialLogin('Google')" title="Masuk dengan akun Google">
+                        <svg width="18" height="18" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                        </svg>
+                        <span>Google</span>
+                    </button>
+                    <button type="button" class="btn-social btn-github" onclick="handleSocialLogin('GitHub')" title="Masuk dengan akun GitHub">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                        </svg>
+                        <span>GitHub</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Personal API Key (Context7 Style) -->
+    <div id="api-keys-modal" class="modal-backdrop" style="display: none;" onclick="handleApiKeyBackdrop(event)">
+        <div class="modal-card modal-keys-card">
+            <div class="modal-top">
+                <div class="sidebar-title">
+                    <span class="sidebar-icon">🔑</span>
+                    <h3 data-i18n="apikey_title">Personal API Key</h3>
+                </div>
+                <button type="button" class="modal-close-btn" onclick="closeApiKeyModal()" title="Tutup (Esc)">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                {% if user and user.tier != 'pro' %}
+                <!-- PRO Upsell Card untuk Free User -->
+                <div class="pro-lock-card">
+                    <div class="pro-lock-badge" data-i18n="pro_lock_badge">👑 EKSKLUSIF PRO</div>
+                    <h4 class="pro-lock-title" data-i18n="pro_lock_title">Buka Akses Personal API Key</h4>
+                    <p class="pro-lock-desc" data-i18n="pro_lock_desc">
+                        Fitur Personal API Key dirancang khusus untuk Developer & Otomasi cURL/CLI. Beralih ke tier PRO untuk mengintegrasikan File2MD langsung ke skrip, terminal, dan workflow Anda tanpa token JWT kedaluwarsa.
+                    </p>
+                    <ul class="pro-features-list">
+                        <li><span>⚡</span> <span data-i18n="pro_feat_1"><strong>API Key Permanen:</strong> Akses konversi via cURL & skrip Python</span></li>
+                        <li><span>📦</span> <span data-i18n="pro_feat_2"><strong>Kuota Lebih Besar:</strong> Upload hingga 100 MB & 50 file per bundle</span></li>
+                        <li><span>🛡️</span> <span data-i18n="pro_feat_3"><strong>Keamanan Enterprise:</strong> SHA-256 zero-plaintext token storage</span></li>
+                    </ul>
+                    <div class="pro-action-box">
+                        <button type="button" class="btn-upgrade-pro" onclick="handleToggleTier('pro')" data-i18n="btn_upgrade_pro">
+                            🚀 Upgrade ke PRO (Instan)
+                        </button>
+                    </div>
+                </div>
+                {% else %}
+                <!-- PRO User Key Management UI -->
+                <div class="pro-status-banner">
+                    <span data-i18n="pro_member_status">⭐ <strong>PRO Member:</strong> Akses API Key & Otomasi Aktif</span>
+                    <button type="button" class="btn-sim-free" onclick="handleToggleTier('free')" title="Simulasi beralih kembali ke Free tier" data-i18n="btn_sim_free">Beralih ke Free</button>
+                </div>
+
+                <p class="modal-desc" data-i18n="apikey_modal_desc">Gunakan API Key ini untuk otomasi via <code>cURL</code>, skrip Python, atau CLI tanpa token JWT kedaluwarsa.</p>
+
+                <!-- Box Key Baru Muncul Disini -->
+                <div id="new-key-container" style="display: none;" class="new-key-box">
+                    <div class="new-key-header">
+                        <span class="new-key-title">✅ API Key Berhasil Dibuat!</span>
+                    </div>
+                    <div class="new-key-val">
+                        <code id="new-key-plaintext"></code>
+                        <button type="button" class="btn btn-secondary" onclick="copyNewKey()" style="padding: 0.25rem 0.6rem; font-size: 0.78rem;">📋 Salin</button>
+                    </div>
+                    <p class="new-key-warning">⚠️ <strong>Penting:</strong> Simpan key ini sekarang. Demi keamanan, key lengkap ini tidak akan pernah ditampilkan lagi!</p>
+                </div>
+
+                <!-- Form Buat Key Baru -->
+                <form onsubmit="handleCreateApiKey(event)" class="key-create-form">
+                    <input type="text" id="key-name-input" data-i18n-placeholder="key_name_placeholder" placeholder="Nama Key (misal: Terminal Mac / Script Python)" required class="text-input">
+                    <button type="submit" class="btn-key-generate" id="btn-generate-key" data-i18n="btn_generate_key">Buat Key</button>
+                </form>
+
+                <h4 style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 0.6rem;" data-i18n="active_keys_title">Daftar Key Aktif</h4>
+                <div id="api-keys-list" class="keys-list">
+                    <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 1rem;">Memuat daftar API key...</div>
+                </div>
+
+                <!-- Contekan cURL -->
+                <details class="curl-snippet-box">
+                    <summary data-i18n="curl_summary">Contoh Perintah cURL</summary>
+                    <pre class="curl-code">curl -X POST http://localhost:8031/api/convert \
+  -H "X-API-Key: f2md_live_YOUR_KEY" \
+  -F "file=@dokumen.pdf"</pre>
+                </details>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -198,13 +315,208 @@
             </div>
             <p class="confirm-body" id="confirm-body">Apakah Anda yakin ingin menghapus data ini?</p>
             <div class="confirm-actions">
-                <button type="button" class="btn btn-secondary" onclick="resolveConfirm(false)">Batal</button>
-                <button type="button" class="btn btn-danger-confirm" id="confirm-action-btn" onclick="resolveConfirm(true)">Hapus</button>
+                <button type="button" class="btn btn-secondary" onclick="resolveConfirm(false)" data-i18n="btn_cancel">Batal</button>
+                <button type="button" class="btn btn-danger-confirm" id="confirm-action-btn" onclick="resolveConfirm(true)" data-i18n="btn_confirm_delete">Hapus</button>
             </div>
         </div>
     </div>
 
     <script>
+        const i18n = {
+            id: {
+                nav_badge: "Local-First",
+                guest_label: "Tamu",
+                btn_signin: "Masuk",
+                btn_signup: "Daftar Gratis",
+                btn_logout_title: "Keluar dari akun",
+                btn_apikeys_title: "Pengaturan Personal API Key",
+                hero_title: "File to Markdown untuk AI Context",
+                hero_subtitle: "Konversi dokumen, kode, data tabular, dan gambar ke format Markdown bersih tanpa ketergantungan cloud.",
+                sidebar_title: "Riwayat (24 Jam)",
+                sidebar_tip: "Klik untuk membuka kembali",
+                sidebar_empty: "Belum ada riwayat konversi.",
+                bundle_placeholder: "Judul Bundle (Opsional, default: Project Context)",
+                dropzone_label: "Pilih, seret file, atau tekan <kbd>Ctrl + V</kbd>",
+                dropzone_hint: "Mendukung dokumen tunggal, multi-file bundle, paste screenshot, atau arsip .ZIP",
+                btn_convert: "⚡ Konversi ke Markdown",
+                loading_text: "Memproses dan mengekstrak konteks file...",
+                footer_text: "File2MD &bull; Zero-Cloud Retention &bull; Berjalan 100% lokal pada Docker port 8031",
+                tab_login: "Masuk",
+                tab_register: "Buat Akun",
+                modal_desc_login: "Masuk untuk menikmati kuota upload hingga <strong>50 MB</strong> dan riwayat <strong>24 jam</strong>.",
+                modal_desc_register: "Daftar akun gratis dalam 5 detik. Tanpa kartu kredit, 100% lokal.",
+                label_email: "Alamat Email",
+                label_password: "Password",
+                password_placeholder: "Minimal 6 karakter",
+                btn_auth_submit_login: "Masuk Sekarang",
+                btn_auth_submit_register: "Daftar Akun Baru",
+                auth_divider: "atau lanjutkan dengan",
+                apikey_title: "Personal API Key",
+                pro_lock_badge: "👑 EKSKLUSIF PRO",
+                pro_lock_title: "Buka Akses Personal API Key",
+                pro_lock_desc: "Fitur Personal API Key dirancang khusus untuk Developer & Otomasi cURL/CLI. Beralih ke tier PRO untuk mengintegrasikan File2MD langsung ke skrip, terminal, dan workflow Anda tanpa token JWT kedaluwarsa.",
+                pro_feat_1: "<strong>API Key Permanen:</strong> Akses konversi via cURL & skrip Python",
+                pro_feat_2: "<strong>Kuota Lebih Besar:</strong> Upload hingga 100 MB & 50 file per bundle",
+                pro_feat_3: "<strong>Keamanan Enterprise:</strong> SHA-256 zero-plaintext token storage",
+                btn_upgrade_pro: "🚀 Upgrade ke PRO (Instan)",
+                pro_member_status: "⭐ <strong>PRO Member:</strong> Akses API Key & Otomasi Aktif",
+                btn_sim_free: "Beralih ke Free",
+                apikey_modal_desc: "Gunakan API Key ini untuk otomasi via <code>cURL</code>, skrip Python, atau CLI tanpa token JWT kedaluwarsa.",
+                key_name_placeholder: "Nama Key (misal: Terminal Mac / Script Python)",
+                btn_generate_key: "Buat Key",
+                active_keys_title: "Daftar Key Aktif",
+                curl_summary: "Contoh Perintah cURL",
+                result_title: "Hasil Konversi:",
+                badge_success: "Sukses",
+                badge_opened_history: "Dibuka dari Riwayat 24 Jam",
+                btn_copy: "📋 Salin Markdown",
+                btn_download: "💾 Unduh .md",
+                preset_label: "Format Preset:",
+                tab_raw: "📝 Raw Editor",
+                tab_preview: "👁️ GitHub Preview",
+                view_hint: "Live render ala GitHub Markdown",
+                btn_cancel: "Batal",
+                btn_confirm_delete: "Hapus",
+                toast_lang_changed: "Bahasa diubah ke Bahasa Indonesia",
+                copied_toast: "Teks Markdown disalin ke clipboard!",
+                copy_key_toast: "API Key disalin ke clipboard!",
+                dev_toast_google: "Fitur login Google sedang dalam tahap pengembangan!",
+                dev_toast_github: "Fitur login GitHub sedang dalam tahap pengembangan!",
+                confirm_revoke_title: "Cabut API Key?",
+                confirm_revoke_msg: "API Key ini akan langsung dinonaktifkan. Setiap skrip atau permintaan yang menggunakannya akan ditolak.",
+                confirm_revoke_btn: "Ya, Cabut Key",
+                confirm_del_history_title: "Hapus Riwayat?",
+                confirm_del_history_msg: "File ini akan dihapus dari riwayat konversi 24 jam Anda.",
+                confirm_del_history_btn: "Ya, Hapus",
+                conv_success: "File berhasil dikonversi ke Markdown!",
+                conv_error: "Konversi gagal atau terjadi kesalahan.",
+                load_history_error: "Gagal mengambil detail riwayat.",
+                del_history_success: "Riwayat berhasil dihapus.",
+                key_revoked_success: "API Key berhasil dicabut."
+            },
+            en: {
+                nav_badge: "Local-First",
+                guest_label: "Guest",
+                btn_signin: "Sign In",
+                btn_signup: "Sign Up Free",
+                btn_logout_title: "Sign out of account",
+                btn_apikeys_title: "Personal API Key Settings",
+                hero_title: "File to Markdown for AI Context",
+                hero_subtitle: "Convert documents, code, tabular data, and images to clean Markdown without cloud dependencies.",
+                sidebar_title: "History (24 Hours)",
+                sidebar_tip: "Click to reopen",
+                sidebar_empty: "No conversion history yet.",
+                bundle_placeholder: "Bundle Title (Optional, default: Project Context)",
+                dropzone_label: "Choose, drag files, or press <kbd>Ctrl + V</kbd>",
+                dropzone_hint: "Supports single documents, multi-file bundles, pasted screenshots, or .ZIP archives",
+                btn_convert: "⚡ Convert to Markdown",
+                loading_text: "Processing and extracting file context...",
+                footer_text: "File2MD &bull; Zero-Cloud Retention &bull; Running 100% locally on Docker port 8031",
+                tab_login: "Sign In",
+                tab_register: "Create Account",
+                modal_desc_login: "Sign in to enjoy upload quotas up to <strong>50 MB</strong> and <strong>24-hour</strong> history.",
+                modal_desc_register: "Create a free account in 5 seconds. No credit card, 100% local.",
+                label_email: "Email Address",
+                label_password: "Password",
+                password_placeholder: "Minimum 6 characters",
+                btn_auth_submit_login: "Sign In Now",
+                btn_auth_submit_register: "Register New Account",
+                auth_divider: "or continue with",
+                apikey_title: "Personal API Key",
+                pro_lock_badge: "👑 PRO EXCLUSIVE",
+                pro_lock_title: "Unlock Personal API Key Access",
+                pro_lock_desc: "Personal API Keys are designed specifically for Developers & cURL/CLI Automation. Upgrade to PRO tier to integrate File2MD directly into your scripts, terminal, and workflows without expiring JWT tokens.",
+                pro_feat_1: "<strong>Permanent API Key:</strong> Conversion access via cURL & Python scripts",
+                pro_feat_2: "<strong>Higher Limits:</strong> Upload up to 100 MB & 50 files per bundle",
+                pro_feat_3: "<strong>Enterprise Security:</strong> SHA-256 zero-plaintext token storage",
+                btn_upgrade_pro: "🚀 Upgrade to PRO (Instant)",
+                pro_member_status: "⭐ <strong>PRO Member:</strong> API Key & Automation Active",
+                btn_sim_free: "Switch to Free",
+                apikey_modal_desc: "Use this API Key for automation via <code>cURL</code>, Python scripts, or CLI without expiring JWT tokens.",
+                key_name_placeholder: "Key Name (e.g.: Mac Terminal / Python Script)",
+                btn_generate_key: "Generate Key",
+                active_keys_title: "Active API Keys",
+                curl_summary: "Example cURL Command",
+                result_title: "Conversion Result:",
+                badge_success: "Success",
+                badge_opened_history: "Opened from 24h History",
+                btn_copy: "📋 Copy Markdown",
+                btn_download: "💾 Download .md",
+                preset_label: "Format Preset:",
+                tab_raw: "📝 Raw Editor",
+                tab_preview: "👁️ GitHub Preview",
+                view_hint: "Live render in GitHub Markdown style",
+                btn_cancel: "Cancel",
+                btn_confirm_delete: "Delete",
+                toast_lang_changed: "Language changed to English",
+                copied_toast: "Markdown text copied to clipboard!",
+                copy_key_toast: "API Key copied to clipboard!",
+                dev_toast_google: "Google login is currently under development!",
+                dev_toast_github: "GitHub login is currently under development!",
+                confirm_revoke_title: "Revoke API Key?",
+                confirm_revoke_msg: "This API Key will be deactivated immediately. Any script or request using it will be rejected.",
+                confirm_revoke_btn: "Yes, Revoke Key",
+                confirm_del_history_title: "Delete History?",
+                confirm_del_history_msg: "This file will be deleted from your 24-hour conversion history.",
+                confirm_del_history_btn: "Yes, Delete",
+                conv_success: "File successfully converted to Markdown!",
+                conv_error: "Conversion failed or an error occurred.",
+                load_history_error: "Failed to retrieve history details.",
+                del_history_success: "History deleted successfully.",
+                key_revoked_success: "API Key successfully revoked."
+            }
+        };
+
+        let currentLang = localStorage.getItem('f2md_lang') || 'id';
+
+        function setLanguage(lang, showNotification = true) {
+            if (!i18n[lang]) lang = 'id';
+            currentLang = lang;
+            localStorage.setItem('f2md_lang', lang);
+
+            const btnId = document.getElementById('btn-lang-id');
+            const btnEn = document.getElementById('btn-lang-en');
+            if (btnId) btnId.classList.toggle('active', lang === 'id');
+            if (btnEn) btnEn.classList.toggle('active', lang === 'en');
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (i18n[lang] && i18n[lang][key] !== undefined) {
+                    el.innerHTML = i18n[lang][key];
+                }
+            });
+
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if (i18n[lang] && i18n[lang][key] !== undefined) {
+                    el.placeholder = i18n[lang][key];
+                }
+            });
+
+            document.querySelectorAll('[data-i18n-title]').forEach(el => {
+                const key = el.getAttribute('data-i18n-title');
+                if (i18n[lang] && i18n[lang][key] !== undefined) {
+                    el.title = i18n[lang][key];
+                }
+            });
+
+            const modalDesc = document.getElementById('modal-desc');
+            const submitBtn = document.getElementById('modal-submit-btn');
+            if (modalDesc && submitBtn) {
+                if (currentAuthMode === 'login') {
+                    modalDesc.innerHTML = i18n[lang].modal_desc_login;
+                    submitBtn.innerHTML = `<span>${i18n[lang].btn_auth_submit_login}</span>`;
+                } else {
+                    modalDesc.innerHTML = i18n[lang].modal_desc_register;
+                    submitBtn.innerHTML = `<span>${i18n[lang].btn_auth_submit_register}</span>`;
+                }
+            }
+
+            if (showNotification) {
+                showToast(i18n[lang].toast_lang_changed, 'info', 1600);
+            }
+        }
+
         let currentAuthMode = 'login';
         let confirmResolver = null;
         let currentConversion = {
@@ -212,6 +524,21 @@
             filename: '',
             preset: 'chatgpt'
         };
+
+        // --- Menangani Notifikasi Redirect OAuth & Inisialisasi Bahasa ---
+        window.addEventListener('DOMContentLoaded', () => {
+            setLanguage(currentLang, false);
+
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('auth_error')) {
+                showToast(urlParams.get('auth_error'), 'error', 4500);
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+            if (urlParams.has('auth_success')) {
+                showToast(urlParams.get('auth_success'), 'success', 3500);
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        });
 
         // --- Inisialisasi Format Waktu Lokal Browser Pengguna ---
         function formatLocalTime(isoStr) {
@@ -309,7 +636,31 @@
             switchAuthTab(mode);
             document.getElementById('auth-modal').style.display = 'flex';
             document.getElementById('modal-alert').style.display = 'none';
+            const pwdInput = document.getElementById('auth-password');
+            if (pwdInput) {
+                pwdInput.type = 'password';
+                const showIcon = document.getElementById('eye-icon-show');
+                const hideIcon = document.getElementById('eye-icon-hide');
+                if (showIcon) showIcon.style.display = 'block';
+                if (hideIcon) hideIcon.style.display = 'none';
+            }
             setTimeout(() => { document.getElementById('auth-email').focus(); }, 100);
+        }
+
+        function togglePasswordVisibility() {
+            const input = document.getElementById('auth-password');
+            const showIcon = document.getElementById('eye-icon-show');
+            const hideIcon = document.getElementById('eye-icon-hide');
+            if (!input) return;
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (showIcon) showIcon.style.display = 'none';
+                if (hideIcon) hideIcon.style.display = 'block';
+            } else {
+                input.type = 'password';
+                if (showIcon) showIcon.style.display = 'block';
+                if (hideIcon) hideIcon.style.display = 'none';
+            }
         }
 
         function closeAuthModal() {
@@ -325,6 +676,7 @@
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') {
                 closeAuthModal();
+                closeApiKeyModal();
                 resolveConfirm(false);
             }
         });
@@ -338,13 +690,15 @@
             if (mode === 'login') {
                 tabLogin.classList.add('active');
                 tabReg.classList.remove('active');
-                desc.innerHTML = 'Masuk untuk menikmati kuota upload hingga <strong>50 MB</strong> dan riwayat <strong>24 jam</strong>.';
-                submitBtn.innerHTML = '<span>Masuk Sekarang</span>';
+                desc.innerHTML = i18n[currentLang].modal_desc_login;
+                submitBtn.innerHTML = `<span>${i18n[currentLang].btn_auth_submit_login}</span>`;
+                currentAuthMode = 'login';
             } else {
                 tabLogin.classList.remove('active');
                 tabReg.classList.add('active');
-                desc.innerHTML = 'Daftar akun gratis dalam 5 detik. Tanpa kartu kredit, 100% lokal.';
-                submitBtn.innerHTML = '<span>Daftar Akun Baru</span>';
+                desc.innerHTML = i18n[currentLang].modal_desc_register;
+                submitBtn.innerHTML = `<span>${i18n[currentLang].btn_auth_submit_register}</span>`;
+                currentAuthMode = 'register';
             }
             document.getElementById('modal-alert').style.display = 'none';
         }
@@ -388,6 +742,154 @@
         async function logout() {
             await fetch('/api/auth/logout', { method: 'POST' });
             window.location.reload();
+        }
+
+        function handleSocialLogin(provider) {
+            const msg = provider === 'Google' ? i18n[currentLang].dev_toast_google : i18n[currentLang].dev_toast_github;
+            showToast(msg, 'info', 3000);
+        }
+
+        // --- API Keys Modal Management ---
+        function openApiKeyModal() {
+            document.getElementById('api-keys-modal').style.display = 'flex';
+            const newKeyBox = document.getElementById('new-key-container');
+            if (newKeyBox) newKeyBox.style.display = 'none';
+            const listEl = document.getElementById('api-keys-list');
+            if (listEl) loadApiKeys();
+        }
+
+        function closeApiKeyModal() {
+            document.getElementById('api-keys-modal').style.display = 'none';
+        }
+
+        function handleApiKeyBackdrop(e) {
+            if (e.target.id === 'api-keys-modal') {
+                closeApiKeyModal();
+            }
+        }
+
+        async function handleToggleTier(targetTier) {
+            try {
+                const res = await fetch('/api/auth/toggle-tier', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target_tier: targetTier || null })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(data.message || 'Status tier berhasil diperbarui!', 'success');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 400);
+                } else {
+                    showToast(data.detail || 'Gagal mengubah status tier.', 'error');
+                }
+            } catch (err) {
+                showToast('Terjadi kesalahan jaringan.', 'error');
+            }
+        }
+
+        async function loadApiKeys() {
+            const listEl = document.getElementById('api-keys-list');
+            if (!listEl) return;
+            try {
+                const res = await fetch('/api/keys');
+                if (res.status === 403) {
+                    listEl.innerHTML = '<div style="color: #f59e0b; text-align: center; font-size: 0.82rem; padding: 1rem;">Fitur ini khusus untuk akun PRO.</div>';
+                    return;
+                }
+                if (!res.ok) {
+                    listEl.innerHTML = '<div style="color: var(--danger); text-align: center; font-size: 0.8rem; padding: 0.8rem;">Gagal memuat daftar key.</div>';
+                    return;
+                }
+                const keys = await res.json();
+                if (keys.length === 0) {
+                    listEl.innerHTML = '<div style="color: var(--text-muted); text-align: center; font-size: 0.82rem; padding: 1rem;">Belum ada API key aktif. Buat satu di atas!</div>';
+                    return;
+                }
+
+                listEl.innerHTML = keys.map(k => `
+                    <div class="key-item-row" id="key-row-${k.id}">
+                        <div class="key-item-info">
+                            <span class="key-item-name">${escapeHtml(k.name)}</span>
+                            <span class="key-item-meta"><code>${escapeHtml(k.key_prefix)}</code> &bull; Terakhir dipakai: ${k.last_used_at ? formatLocalTime(k.last_used_at) : 'Belum pernah'}</span>
+                        </div>
+                        <button type="button" class="btn-key-del" onclick="deleteApiKey(${k.id})" title="Cabut/Hapus key">&times;</button>
+                    </div>
+                `).join('');
+            } catch (err) {
+                listEl.innerHTML = '<div style="color: var(--danger); text-align: center; font-size: 0.8rem; padding: 0.8rem;">Gagal menghubungi server.</div>';
+            }
+        }
+
+        async function handleCreateApiKey(e) {
+            e.preventDefault();
+            const input = document.getElementById('key-name-input');
+            const btn = document.getElementById('btn-generate-key');
+            const name = input.value.trim();
+            if (!name) return;
+
+            btn.disabled = true;
+            btn.innerText = 'Membuat...';
+
+            try {
+                const res = await fetch('/api/keys', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    input.value = '';
+                    const newKeyBox = document.getElementById('new-key-container');
+                    const codeEl = document.getElementById('new-key-plaintext');
+                    codeEl.innerText = data.api_key;
+                    newKeyBox.style.display = 'block';
+                    loadApiKeys();
+                    showToast('API Key berhasil dibuat!', 'success');
+                } else {
+                    showToast(data.detail || 'Gagal membuat API Key.', 'error');
+                }
+            } catch (err) {
+                showToast('Terjadi kesalahan jaringan.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Buat Key';
+            }
+        }
+
+        function copyNewKey() {
+            const keyText = document.getElementById('new-key-plaintext').innerText;
+            if (!keyText) return;
+            navigator.clipboard.writeText(keyText).then(() => {
+                showToast(i18n[currentLang].copy_key_toast, 'success');
+            });
+        }
+
+        async function deleteApiKey(id) {
+            const confirmed = await showConfirm({
+                title: i18n[currentLang].confirm_revoke_title,
+                message: i18n[currentLang].confirm_revoke_msg,
+                icon: '🔑',
+                confirmText: i18n[currentLang].confirm_revoke_btn,
+                isDanger: true,
+            });
+            if (!confirmed) return;
+
+            try {
+                const res = await fetch(`/api/keys/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    const row = document.getElementById(`key-row-${id}`);
+                    if (row) row.remove();
+                    showToast(i18n[currentLang].key_revoked_success, 'success');
+                    loadApiKeys();
+                } else {
+                    showToast('Gagal mencabut API Key.', 'error');
+                }
+            } catch (err) {
+                showToast('Terjadi kesalahan jaringan.', 'error');
+            }
         }
 
         function escapeHtml(text) {
@@ -471,7 +973,7 @@
                 obsidian: 'Obsidian Note',
                 html: 'HTML Rich'
             };
-            showToast(`Format diubah ke ${names[preset] || preset}`, 'info', 1600);
+            showToast(`Preset diubah ke ${names[preset] || preset}`, 'info', 1600);
         }
 
         async function refreshHistory() {
@@ -549,17 +1051,17 @@
                         <div class="result-header">
                             <div>
                                 <h2>${safeFilename}</h2>
-                                <span class="badge badge-success">Dibuka dari Riwayat 24 Jam</span>
+                                <span class="badge badge-success" data-i18n="badge_opened_history">Dibuka dari Riwayat 24 Jam</span>
                             </div>
                             <div class="action-buttons">
-                                <button type="button" class="btn btn-secondary" id="btn-copy" onclick="copyMarkdown()">📋 Salin Markdown</button>
-                                <button type="button" class="btn btn-secondary" id="btn-download" onclick="downloadMarkdown('${safeFilename}')">💾 Unduh .md</button>
+                                <button type="button" class="btn btn-secondary" id="btn-copy" onclick="copyMarkdown()" data-i18n="btn_copy">📋 Salin Markdown</button>
+                                <button type="button" class="btn btn-secondary" id="btn-download" onclick="downloadMarkdown('${safeFilename}')" data-i18n="btn_download">💾 Unduh .md</button>
                             </div>
                         </div>
 
                         <!-- Preset Format Selector Bar -->
                         <div class="preset-bar">
-                            <span class="preset-label">Format Preset:</span>
+                            <span class="preset-label" data-i18n="preset_label">Format Preset:</span>
                             <div class="preset-pills">
                                 <button type="button" class="btn-preset active" data-preset="chatgpt" onclick="selectPreset('chatgpt')">🤖 ChatGPT</button>
                                 <button type="button" class="btn-preset" data-preset="claude" onclick="selectPreset('claude')">🧠 Claude XML</button>
@@ -570,10 +1072,10 @@
 
                         <div class="view-tabs-header">
                             <div class="view-tabs">
-                                <button type="button" id="tab-raw" class="tab-btn active" onclick="switchView('raw')">📝 Raw Editor</button>
-                                <button type="button" id="tab-preview" class="tab-btn" onclick="switchView('preview')">👁️ GitHub Preview</button>
+                                <button type="button" id="tab-raw" class="tab-btn active" onclick="switchView('raw')" data-i18n="tab_raw">📝 Raw Editor</button>
+                                <button type="button" id="tab-preview" class="tab-btn" onclick="switchView('preview')" data-i18n="tab_preview">👁️ GitHub Preview</button>
                             </div>
-                            <span class="view-hint">Live render ala GitHub Markdown</span>
+                            <span class="view-hint" data-i18n="view_hint">Live render ala GitHub Markdown</span>
                         </div>
                         <div id="raw-view-container" class="editor-container">
                             <textarea id="markdown-editor" class="markdown-editor" rows="18">${escapeHtml(data.content)}</textarea>
@@ -581,18 +1083,19 @@
                         <div id="preview-view-container" class="github-preview-box" style="display: none;"></div>
                     </div>
                 `;
+                setLanguage(currentLang, false);
                 container.scrollIntoView({ behavior: 'smooth' });
             } catch (err) {
-                showToast('Terjadi kesalahan saat membuka riwayat.', 'error');
+                showToast(i18n[currentLang].load_history_error, 'error');
             }
         }
 
         async function deleteHistoryItem(id) {
             const confirmed = await showConfirm({
-                title: 'Hapus Riwayat?',
-                message: 'File ini akan dihapus dari riwayat konversi 24 jam Anda.',
+                title: i18n[currentLang].confirm_del_history_title,
+                message: i18n[currentLang].confirm_del_history_msg,
                 icon: '🗑️',
-                confirmText: 'Ya, Hapus',
+                confirmText: i18n[currentLang].confirm_del_history_btn,
                 isDanger: true,
             });
             if (!confirmed) return;
@@ -601,7 +1104,7 @@
                 const res = await fetch(`/api/history/${id}`, { method: 'DELETE' });
                 if (res.ok) {
                     await refreshHistory();
-                    showToast('Riwayat berhasil dihapus.', 'success');
+                    showToast(i18n[currentLang].del_history_success, 'success');
                 } else {
                     showToast('Gagal menghapus riwayat dari server.', 'error');
                 }
@@ -660,10 +1163,9 @@
             navigator.clipboard.writeText(textarea.value).then(() => {
                 const btn = document.getElementById('btn-copy');
                 const origText = btn.innerText;
-                btn.innerText = '✅ Disalin!';
+                btn.innerText = currentLang === 'en' ? '✅ Copied!' : '✅ Disalin!';
                 setTimeout(() => { btn.innerText = origText; }, 2000);
-                const preset = (currentConversion && currentConversion.preset) ? currentConversion.preset.toUpperCase() : 'MARKDOWN';
-                showToast(`Konten (${preset}) berhasil disalin!`, 'success');
+                showToast(i18n[currentLang].copied_toast, 'success');
             }).catch(() => {
                 showToast('Gagal menyalin markdown ke clipboard.', 'error');
             });
@@ -738,10 +1240,11 @@
             if (event.detail.target && event.detail.target.id === 'result-container') {
                 if (event.detail.successful) {
                     refreshHistory();
-                    showToast('File berhasil dikonversi ke Markdown!', 'success');
+                    showToast(i18n[currentLang].conv_success, 'success');
 
-                    // Inisialisasi state konversi aktif
+                    // Inisialisasi state konversi aktif & terapkan bahasa
                     setTimeout(() => {
+                        setLanguage(currentLang, false);
                         const editor = document.getElementById('markdown-editor');
                         const card = document.querySelector('.result-card');
                         if (editor && card) {
@@ -753,7 +1256,7 @@
                         }
                     }, 50);
                 } else {
-                    showToast('Konversi gagal atau terjadi kesalahan.', 'error');
+                    showToast(i18n[currentLang].conv_error, 'error');
                 }
             }
         });
