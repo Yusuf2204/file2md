@@ -1,6 +1,9 @@
 from typing import Annotated, Any
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app.models.history import ConversionHistory
 from app.models.user import User
 from app.parsers.base import ParserError
 from app.routes.auth import get_current_user_optional
@@ -41,6 +44,7 @@ class ConvertResponse(BaseModel):
 def convert_file(
     file: UploadFile = File(...),
     current_user: Annotated[User | None, Depends(get_current_user_optional)] = None,
+    db: Annotated[Session, Depends(get_db)] = None,
 ):
     filename = file.filename or "unknown"
     max_size, _ = get_tier_limits(current_user)
@@ -52,6 +56,18 @@ def convert_file(
             mime_type=file.content_type,
             max_file_size_bytes=max_size,
         )
+
+        # Simpan ke riwayat jika user sudah login (Tier 2 Value)
+        if current_user and db:
+            history_record = ConversionHistory(
+                user_id=current_user.id,
+                filename=output.filename,
+                content=output.markdown,
+                file_type="single",
+            )
+            db.add(history_record)
+            db.commit()
+
         return ConvertResponse(
             filename=output.filename,
             markdown=output.markdown,
@@ -98,6 +114,7 @@ def bundle_files(
     files: list[UploadFile] = File(...),
     title: str = Form("Project Context"),
     current_user: Annotated[User | None, Depends(get_current_user_optional)] = None,
+    db: Annotated[Session, Depends(get_db)] = None,
 ):
     if not files:
         raise HTTPException(
@@ -107,7 +124,6 @@ def bundle_files(
 
     max_size, max_files = get_tier_limits(current_user)
 
-    # Validasi kuota jumlah file bundle
     if len(files) > max_files:
         tier_name = current_user.tier.title() if current_user else "Guest"
         raise HTTPException(
@@ -129,6 +145,17 @@ def bundle_files(
         title=title,
         max_file_size_bytes=max_size,
     )
+
+    # Simpan bundle ke riwayat jika user sudah login
+    if current_user and db and output.success_files > 0:
+        history_record = ConversionHistory(
+            user_id=current_user.id,
+            filename=f"{title.replace(' ', '_')}_bundle.md",
+            content=output.markdown,
+            file_type="bundle",
+        )
+        db.add(history_record)
+        db.commit()
 
     return BundleResponse(
         markdown=output.markdown,

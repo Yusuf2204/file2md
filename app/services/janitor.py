@@ -1,7 +1,10 @@
 import asyncio
 import logging
 import time
+from datetime import datetime, timezone
 from pathlib import Path
+from app.database import SessionLocal
+from app.models.history import ConversionHistory
 
 logger = logging.getLogger("file2md.janitor")
 
@@ -21,16 +24,38 @@ def cleanup_temp_files(temp_dir: Path | str = "temp", max_age_seconds: int = 180
     for item in path.iterdir():
         if item.is_file():
             try:
-                # Periksa waktu modifikasi terakhir file
                 file_age = now - item.stat().st_mtime
                 if file_age > max_age_seconds:
                     item.unlink(missing_ok=True)
                     deleted_count += 1
-                    logger.info(f"Janitor menghapus file temp kadaluarsa: {item.name} (usia {int(file_age)}s)")
+                    logger.info(f"Janitor menghapus file temp: {item.name}")
             except Exception as e:
                 logger.warning(f"Janitor gagal menghapus file {item.name}: {e}")
 
     return deleted_count
+
+
+def cleanup_expired_history() -> int:
+    """
+    Menghapus riwayat konversi dari database yang sudah melewati batas waktu expires_at.
+    """
+    db = SessionLocal()
+    try:
+        now = datetime.now(timezone.utc)
+        deleted = (
+            db.query(ConversionHistory)
+            .filter(ConversionHistory.expires_at < now)
+            .delete()
+        )
+        if deleted > 0:
+            db.commit()
+            logger.info(f"Janitor membersihkan {deleted} riwayat konversi kadaluarsa (> 24 jam).")
+        return deleted
+    except Exception as e:
+        logger.error(f"Gagal membersihkan riwayat kadaluarsa: {e}")
+        return 0
+    finally:
+        db.close()
 
 
 async def start_janitor_loop(
@@ -41,16 +66,14 @@ async def start_janitor_loop(
     """
     Loop asinkron yang berjalan di background selama aplikasi FastAPI hidup.
     """
-    logger.info(
-        f"Background Janitor aktif (Interval: {interval_seconds}s, Max Age: {max_age_seconds}s)"
-    )
+    logger.info("Background Janitor aktif (File temp & Database History cleaner).")
     while True:
         try:
-            cleaned = cleanup_temp_files(temp_dir=temp_dir, max_age_seconds=max_age_seconds)
-            if cleaned > 0:
-                logger.info(f"Background Janitor selesai membersihkan {cleaned} file kadaluarsa.")
+            # 1. Bersihkan file temp lama
+            cleanup_temp_files(temp_dir=temp_dir, max_age_seconds=max_age_seconds)
+            # 2. Bersihkan riwayat database yang expired
+            cleanup_expired_history()
         except Exception as e:
             logger.error(f"Error pada loop Janitor: {e}")
 
-        # Tidur secara non-blocking selama interval detik
         await asyncio.sleep(interval_seconds)
