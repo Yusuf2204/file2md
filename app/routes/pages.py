@@ -1,9 +1,11 @@
-from fastapi import APIRouter, File, Form, Request, UploadFile
+from typing import Annotated
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from app.parsers.base import ParserError
+from app.models.user import User
+from app.routes.auth import get_current_user_optional
+from app.routes.conversion import get_tier_limits
 from app.services.converter import ConversionService
-from app.services.detector import UnsupportedFormatError
 
 router = APIRouter(tags=["Pages"])
 templates = Jinja2Templates(directory="app/templates")
@@ -11,8 +13,15 @@ service = ConversionService()
 
 
 @router.get("/", response_class=HTMLResponse)
-def index_page(request: Request):
-    return templates.TemplateResponse(request=request, name="index.html")
+def index_page(
+    request: Request,
+    current_user: Annotated[User | None, Depends(get_current_user_optional)] = None,
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={"user": current_user},
+    )
 
 
 @router.post("/convert-ui", response_class=HTMLResponse)
@@ -20,6 +29,7 @@ def convert_ui(
     request: Request,
     files: list[UploadFile] = File(...),
     bundle_title: str = Form("Project Context"),
+    current_user: Annotated[User | None, Depends(get_current_user_optional)] = None,
 ):
     if not files:
         return templates.TemplateResponse(
@@ -27,6 +37,8 @@ def convert_ui(
             name="result_partial.html",
             context={"success": False, "filename": "-", "error": "Tidak ada file yang dipilih."},
         )
+
+    max_size, max_files = get_tier_limits(current_user)
 
     # 1. Mode Single File jika hanya 1 file yang diunggah
     if len(files) == 1:
@@ -37,6 +49,7 @@ def convert_ui(
                 file_obj=f.file,
                 filename=filename,
                 mime_type=f.content_type,
+                max_file_size_bytes=max_size,
             )
             return templates.TemplateResponse(
                 request=request,
@@ -57,9 +70,29 @@ def convert_ui(
             )
 
     # 2. Mode Bundle jika lebih dari 1 file
+    if len(files) > max_files:
+        tier_label = current_user.tier.title() if current_user else "Tamu (Guest)"
+        return templates.TemplateResponse(
+            request=request,
+            name="result_partial.html",
+            context={
+                "success": False,
+                "filename": "Bundle Limit",
+                "error": (
+                    f"Batas upload bundle untuk akun {tier_label} adalah maksimal {max_files} file "
+                    f"(Anda memilih {len(files)} file). "
+                    f"Silakan login gratis untuk bundle hingga 15 file!"
+                ),
+            },
+        )
+
     try:
         file_payloads = [(f.file, f.filename or "unknown", f.content_type) for f in files]
-        bundle_out = service.bundle_streams(file_payloads, title=bundle_title)
+        bundle_out = service.bundle_streams(
+            file_payloads,
+            title=bundle_title,
+            max_file_size_bytes=max_size,
+        )
 
         return templates.TemplateResponse(
             request=request,

@@ -16,7 +16,7 @@ WORKDIR /app
 # 1. Install PyTorch khusus CPU terlebih dahulu (Hemat 2.3 GB!)
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
-# 2. Install requirements lainnya
+# 2. Install requirements lainnya (termasuk SQLAlchemy)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -24,8 +24,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ ./app/
 COPY docs/ ./docs/
 
-# Siapkan direktori temp dan cache Hugging Face dengan hak milik appuser
-RUN mkdir -p temp /home/appuser/.cache/huggingface \
+# Siapkan direktori data, temp, dan cache Hugging Face dengan hak milik appuser
+RUN mkdir -p data temp /home/appuser/.cache/huggingface \
     && chown -R appuser:appuser /app /home/appuser
 
 ENV HF_HOME=/home/appuser/.cache/huggingface

@@ -3,24 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File2MD — Universal File to Markdown</title>
+    <title>File2MD — Universal File to Markdown for AI</title>
     <link rel="stylesheet" href="/static/style.css">
     <!-- Local vendor scripts (100% offline & zero external network calls) -->
     <script src="/static/vendor/htmx.min.js"></script>
     <script src="/static/vendor/marked.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="brand">
-                <span class="logo">📄➡️📝</span>
-                <h1>File2MD</h1>
+    <div class="app-layout">
+        <!-- Top Navigation Bar (Context7 Style) -->
+        <header class="navbar">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <span class="brand-icon">⚡</span>
+                    <span class="brand-title">File2MD</span>
+                    <span class="nav-badge">Local-First</span>
+                </div>
+
+                <div class="nav-auth">
+                    {% if user %}
+                    <div class="user-profile-pill">
+                        <span class="status-dot dot-active"></span>
+                        <span class="user-email">{{ user.email }}</span>
+                        <span class="tier-pill">{{ user.tier.upper() }} (50MB)</span>
+                        <button type="button" class="btn-icon-logout" onclick="logout()" title="Keluar dari akun">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    {% else %}
+                    <div class="guest-indicator">
+                        <span class="status-dot dot-guest"></span>
+                        <span class="guest-text">Tamu <span class="guest-quota">(10 MB)</span></span>
+                    </div>
+                    <div class="auth-btn-group">
+                        <button type="button" class="btn-nav btn-ghost" onclick="openAuthModal('login')">Masuk</button>
+                        <button type="button" class="btn-nav btn-accent" onclick="openAuthModal('register')">Daftar Gratis</button>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-            <p class="subtitle">Ubah file dokumen, data, dan teks menjadi Markdown bersih untuk AI context.</p>
         </header>
 
-        <main>
-            <!-- Form Upload -->
+        <!-- Main Content Area -->
+        <main class="main-container">
+            <!-- Hero Header -->
+            <section class="hero-section">
+                <h1 class="hero-title">File to Markdown untuk AI Context</h1>
+                <p class="hero-subtitle">Konversi dokumen, source code, data tabular, dan gambar ke Markdown bersih tanpa dependensi cloud.</p>
+            </section>
+
+            <!-- Upload Card -->
             <section class="card upload-card">
                 <form 
                     hx-post="/convert-ui" 
@@ -29,36 +65,35 @@
                     enctype="multipart/form-data"
                     hx-indicator="#loading-indicator"
                 >
-                    <!-- Tambahan: Input Judul Bundle (Opsional) -->
-                    <div style="margin-bottom: 1rem;">
+                    <div class="bundle-input-wrapper">
                         <input 
                             type="text" 
                             name="bundle_title" 
                             placeholder="Judul Bundle (Opsional, default: Project Context)" 
-                            class="markdown-editor" 
-                            style="padding: 0.6rem 1rem; height: auto;"
+                            class="input-title"
                         >
                     </div>
 
-                    <div class="file-drop-area">
-                        <!-- Tambahkan attribute multiple dan ganti name="files" -->
+                    <div class="file-drop-area" id="drop-zone">
                         <input type="file" name="files" id="file-input" multiple required onchange="updateFileName(this)">
                         <label for="file-input" id="file-label">
                             <span class="upload-icon">📁</span>
-                            <span id="label-text">Pilih, seret file, atau tekan <strong>Ctrl + V</strong></span>
-                            <span class="file-hint">Mendukung upload file & paste langsung dari clipboard (screenshot / gambar web)</span>
+                            <span id="label-text" class="label-primary">Pilih, seret file, atau tekan <kbd>Ctrl + V</kbd></span>
+                            <span class="file-hint">Mendukung dokumen tunggal, multi-file bundle, paste screenshot, atau arsip .ZIP</span>
                         </label>
                     </div>
 
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Konversi / Buat Bundle</button>
+                        <button type="submit" class="btn btn-submit">
+                            <span>⚡ Konversi ke Markdown</span>
+                        </button>
                     </div>
                 </form>
 
                 <!-- Loading Indicator -->
                 <div id="loading-indicator" class="htmx-indicator loading-box">
                     <div class="spinner"></div>
-                    <span>Memproses file...</span>
+                    <span>Memproses dan mengekstrak konteks file...</span>
                 </div>
             </section>
 
@@ -66,12 +101,132 @@
             <section id="result-container" class="result-area"></section>
         </main>
 
-        <footer>
-            <p>File2MD &bull; Local-first &bull; Tidak ada data yang dikirim ke cloud.</p>
+        <footer class="app-footer">
+            <p>File2MD &bull; Zero-Cloud Retention &bull; Berjalan 100% lokal pada Docker port 8031</p>
         </footer>
     </div>
 
+    <!-- Modal Login / Register Modern (Context7 Inspired) -->
+    <div id="auth-modal" class="modal-backdrop" style="display: none;" onclick="handleBackdropClick(event)">
+        <div class="modal-card">
+            <!-- Header Modal & Close Button -->
+            <div class="modal-top">
+                <div class="modal-tabs">
+                    <button type="button" id="tab-modal-login" class="modal-tab active" onclick="switchAuthTab('login')">Masuk</button>
+                    <button type="button" id="tab-modal-register" class="modal-tab" onclick="switchAuthTab('register')">Buat Akun</button>
+                </div>
+                <button type="button" class="modal-close-btn" onclick="closeAuthModal()" title="Tutup (Esc)">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <p id="modal-desc" class="modal-desc">Masuk untuk menikmati batas upload hingga <strong>50 MB</strong> dan bundle <strong>15 file</strong>.</p>
+                <div id="modal-alert" class="modal-alert" style="display: none;"></div>
+
+                <form onsubmit="handleAuthSubmit(event)">
+                    <div class="form-field">
+                        <label for="auth-email">Alamat Email</label>
+                        <input type="email" id="auth-email" required placeholder="nama@email.com" class="text-input" autocomplete="email">
+                    </div>
+                    <div class="form-field">
+                        <label for="auth-password">Password</label>
+                        <input type="password" id="auth-password" required minlength="6" placeholder="Minimal 6 karakter" class="text-input" autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="btn btn-modal-submit" id="modal-submit-btn">
+                        <span>Masuk Sekarang</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
+        let currentAuthMode = 'login';
+
+        function openAuthModal(mode) {
+            currentAuthMode = mode;
+            switchAuthTab(mode);
+            document.getElementById('auth-modal').style.display = 'flex';
+            document.getElementById('modal-alert').style.display = 'none';
+            setTimeout(() => { document.getElementById('auth-email').focus(); }, 100);
+        }
+
+        function closeAuthModal() {
+            document.getElementById('auth-modal').style.display = 'none';
+        }
+
+        function handleBackdropClick(event) {
+            if (event.target.id === 'auth-modal') {
+                closeAuthModal();
+            }
+        }
+
+        // Tutup modal jika tombol ESC ditekan
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeAuthModal();
+        });
+
+        function switchAuthTab(mode) {
+            currentAuthMode = mode;
+            const tabLogin = document.getElementById('tab-modal-login');
+            const tabReg = document.getElementById('tab-modal-register');
+            const desc = document.getElementById('modal-desc');
+            const submitBtn = document.getElementById('modal-submit-btn');
+
+            if (mode === 'login') {
+                tabLogin.classList.add('active');
+                tabReg.classList.remove('active');
+                desc.innerHTML = 'Masuk untuk menikmati kuota upload hingga <strong>50 MB</strong> dan bundle <strong>15 file</strong>.';
+                submitBtn.innerHTML = '<span>Masuk Sekarang</span>';
+            } else {
+                tabLogin.classList.remove('active');
+                tabReg.classList.add('active');
+                desc.innerHTML = 'Daftar akun gratis dalam 5 detik. Tanpa kartu kredit, 100% lokal.';
+                submitBtn.innerHTML = '<span>Daftar Akun Baru</span>';
+            }
+            document.getElementById('modal-alert').style.display = 'none';
+        }
+
+        async function handleAuthSubmit(e) {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            const alertBox = document.getElementById('modal-alert');
+            const submitBtn = document.getElementById('modal-submit-btn');
+
+            alertBox.style.display = 'none';
+            submitBtn.disabled = true;
+            const origText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span>Memproses...</span>';
+
+            try {
+                const endpoint = currentAuthMode === 'login' ? '/api/auth/login' : '/api/auth/register';
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    window.location.reload();
+                } else {
+                    alertBox.innerText = data.detail || 'Terjadi kesalahan saat otentikasi.';
+                    alertBox.style.display = 'block';
+                }
+            } catch (err) {
+                alertBox.innerText = 'Gagal menghubungi server.';
+                alertBox.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = origText;
+            }
+        }
+
+        async function logout() {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.reload();
+        }
+
         function updateFileName(input) {
             const label = document.getElementById('label-text');
             if (input.files && input.files.length > 0) {
@@ -81,7 +236,7 @@
                     label.innerText = `${input.files.length} file dipilih untuk dijadikan Bundle`;
                 }
             } else {
-                label.innerText = 'Pilih atau seret satu / banyak file ke sini';
+                label.innerHTML = 'Pilih, seret file, atau tekan <kbd>Ctrl + V</kbd>';
             }
         }
 
@@ -105,7 +260,6 @@
                 tabRaw.classList.remove('active');
                 tabPreview.classList.add('active');
 
-                // Render Markdown secara instan menggunakan marked.js lokal
                 if (window.marked && textarea) {
                     previewContainer.innerHTML = marked.parse(textarea.value);
                 }
@@ -141,37 +295,29 @@
 
         window.addEventListener('paste', function (e) {
             const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-            let foundFile = false;
 
             for (let i = 0; i < items.length; i++) {
                 if (items[i].kind === 'file') {
                     const blob = items[i].getAsFile();
                     if (!blob) continue;
 
-                    // Beri nama otomatis jika gambar dari clipboard tidak memiliki nama
                     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
                     const ext = blob.type.split('/')[1] || 'png';
                     const filename = blob.name && blob.name !== 'image.png' 
                         ? blob.name 
                         : `clipboard_${timestamp}.${ext}`;
 
-                    // Bungkus ke objek File
                     const file = new File([blob], filename, { type: blob.type });
-
-                    // Masukkan ke file input menggunakan DataTransfer API
                     const dataTransfer = new DataTransfer();
                     dataTransfer.items.add(file);
                     const fileInput = document.getElementById('file-input');
                     fileInput.files = dataTransfer.files;
 
-                    // Perbarui label tampilan
                     const label = document.getElementById('label-text');
-                    label.innerHTML = `📋 <strong>Gambar Clipboard Ditempel:</strong> ${filename}`;
-                    foundFile = true;
+                    label.innerHTML = `📋 <strong>Gambar Clipboard:</strong> ${filename}`;
 
-                    // Opsional: Otomatis submit form agar langsung dikonversi tanpa perlu klik tombol
                     const form = fileInput.closest('form');
-                    if (form && htmx) {
+                    if (form && window.htmx) {
                         htmx.trigger(form, 'submit');
                     }
                     break;
