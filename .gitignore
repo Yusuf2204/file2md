@@ -26,3 +26,7 @@ temp/
 data/
 *.db
 *.sqlite3
+
+# Documentation
+docs/_build/
+docs/*.pdf

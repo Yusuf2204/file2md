@@ -1,3 +1,4 @@
+import io
 import pytest
 import pymupdf
 import docx
@@ -151,6 +152,32 @@ def test_pdf_parser_text_extraction(tmp_path: Path):
     assert "Halo Halaman Dua!" in result.content
     assert result.metadata["page_count"] == 2
     assert result.metadata["text_pages"] == 2
+
+def test_pdf_parser_ocr_fallback(tmp_path: Path):
+    if not shutil.which("tesseract"):
+        pytest.skip("Tesseract tidak terpasang di sistem.")
+    parser = PdfParser()
+    pdf_path = tmp_path / "scanned_sample.pdf"
+
+    # Buat gambar dengan tulisan tebal
+    img = Image.new("RGB", (600, 200), color="white")
+    draw = ImageDraw.Draw(img)
+    draw.text((30, 80), "SCANNED PDF OCR SUCCESS", fill="black")
+    img_bytes = io.BytesIO()
+    img.save(img_bytes, format="PNG")
+
+    # Masukkan gambar ke halaman PDF tanpa teks digital
+    doc = pymupdf.open()
+    page = doc.new_page(width=600, height=200)
+    page.insert_image(pymupdf.Rect(0, 0, 600, 200), stream=img_bytes.getvalue())
+    doc.save(str(pdf_path))
+    doc.close()
+
+    result = parser.parse(pdf_path)
+    assert result.metadata["ocr_pages"] == 1
+    assert "SCANNED" in result.content.upper()
+    assert "SUCCESS" in result.content.upper()
+    assert "1 dari 1 halaman diekstrak menggunakan OCR lokal" in result.warnings[0]
 
 def test_docx_parser_can_handle():
     parser = DocxParser()
