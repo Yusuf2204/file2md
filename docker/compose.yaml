@@ -5,6 +5,8 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+      # Target build: 'full' (dengan Local AI Vision ~1.6GB) atau 'lite' (hemat disk ~380MB)
+      target: ${DOCKER_TARGET:-full}
     container_name: file2md-app
     restart: unless-stopped
     ports:

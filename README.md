@@ -92,10 +92,12 @@ file2md/
 │   │   └── result_partial.html  # HTMX dynamic conversion preview
 │   └── static/                  # Context7 Dark Theme CSS & Styling
 ├── docker/
-│   ├── Dockerfile               # Production image (Python 3.12 slim + Tesseract + Non-root)
-│   └── compose.yaml             # Docker Compose setup (Port 8031, volume cache HF)
+│   ├── Dockerfile               # Multi-stage image (Target: 'full' AI ~1.6GB & 'lite' ~380MB)
+│   └── compose.yaml             # Docker Compose setup (Port 8031, volume cache HF, target selector)
 ├── tests/                       # 68 Pytest unit & integration test cases
-├── requirements.txt             # Dependensi Python
+├── requirements-base.txt        # Dependensi inti produksi tanpa PyTorch/Transformers
+├── requirements.txt             # Dependensi lengkap produksi (Base + AI)
+├── requirements-dev.txt         # Dependensi testing & development (Pytest)
 ├── .env.example                 # Template variabel lingkungan
 └── docs/file2md.md              # Roadmap & Product Requirements Document (PRD)
 ```
@@ -106,7 +108,16 @@ file2md/
 
 ### Opsi 1: Menggunakan Docker (Direkomendasikan)
 
-Aplikasi sudah dikemas secara lengkap dengan Docker Compose pada port **`8031`**:
+Aplikasi sudah dikemas secara lengkap dengan Docker Compose pada port **`8031`** menggunakan arsitektur **Multi-Stage Build** yang sangat teroptimasi:
+
+#### ⚡ Pilihan Target Image (Full AI vs Lite)
+
+| Varian Image | Ukuran Disk | Fitur & Deskripsi | Cocok Digunakan Untuk |
+| :--- | :--- | :--- | :--- |
+| **`full` (Default)** | **~1.6 GB** | Mendukung seluruh parser dokumen + OCR teks (Tesseract) + **Local AI Vision Captioning (Salesforce BLIP)** 100% offline. Telah dioptimasi dengan membuang C++ headers, test suites, dan debugging tools dari PyTorch CPU (hemat ~670 MB). | Server dengan RAM ≥ 2 GB yang menginginkan deskripsi otomatis gambar dengan AI lokal. |
+| **`lite`** | **~380 MB** | Versi ultra-ringan tanpa PyTorch dan Transformers. Tetap mendukung konversi PDF, DOCX, XLSX, TXT, OCR gambar (ID & EN), Web UI, API Keys, Riwayat, dan Presets. | VPS hemat resource (RAM 512MB - 1GB) atau pipeline CI/CD yang membutuhkan kecepatan build tinggi. |
+
+#### Menjalankan Varian Default (`full` AI):
 
 ```bash
 # 1. Jalankan container di latar belakang
@@ -114,6 +125,17 @@ docker compose -f docker/compose.yaml up -d
 
 # 2. Periksa status dan kesehatan container
 docker compose -f docker/compose.yaml ps
+```
+
+#### Menjalankan Varian Ultra-Ringan (`lite` ~380 MB):
+
+Cukup tambahkan atau ubah variabel berikut pada file `.env`:
+```ini
+DOCKER_TARGET=lite
+```
+Lalu jalankan build dan up:
+```bash
+docker compose -f docker/compose.yaml up -d --build
 ```
 
 Buka peramban di: **`http://localhost:8031`**
@@ -137,11 +159,15 @@ docker compose -f docker/compose.yaml down
 
 2. **Install dependensi:**
    ```bash
-   # Install PyTorch CPU (hemat bandwidth dan ramah resource)
+   # Install dependensi aplikasi (Base + Local AI Vision):
    pip install torch --index-url https://download.pytorch.org/whl/cpu
-
-   # Install dependensi lainnya
    pip install -r requirements.txt
+
+   # ATAU jika hanya ingin versi ringan tanpa PyTorch (Lite Core):
+   # pip install -r requirements-base.txt
+
+   # Untuk development & testing tambahkan:
+   # pip install -r requirements-dev.txt
    ```
 
 3. **Install Tesseract OCR (Opsional untuk OCR gambar):**
