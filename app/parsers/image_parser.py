@@ -1,10 +1,11 @@
 import math
 import shutil
 from pathlib import Path
-from PIL import Image, ImageEnhance
+from PIL import Image
 # Batasi dekompresi gambar untuk mencegah DoS / Decompression Bomb
 Image.MAX_IMAGE_PIXELS = 50_000_000
 from app.parsers.base import BaseParser, ParseResult, ParserError
+from app.services.ocr import OCRService
 from app.services.vision import LocalVisionService
 
 
@@ -44,40 +45,20 @@ class ImageParser(BaseParser):
         return f"{size_bytes / (1024 * 1024):.2f} MB"
 
     def _preprocess_for_ocr(self, img: Image.Image) -> Image.Image:
-        """Optimasi gambar: Grayscale, Upscaling, dan Kontras tinggi untuk Tesseract."""
-        gray = img.convert("L")
-        w, h = gray.size
-        if w < 1000 or h < 1000:
-            gray = gray.resize((w * 2, h * 2), Image.Resampling.LANCZOS)
-        enhancer = ImageEnhance.Contrast(gray)
-        return enhancer.enhance(2.0)
+        """Optimasi gambar: Grayscale, Inversi mode gelap, Upscaling adaptif, dan Kontras tinggi."""
+        processed, _ = OCRService.preprocess_image(img)
+        return processed
 
     def _run_ocr(self, img: Image.Image) -> str | None:
         """Jalankan OCR teroptimasi jika Tesseract tersedia di sistem."""
-        if not shutil.which("tesseract"):
-            return None
-        try:
-            import pytesseract
-            # Cek bahasa yang terpasang di sistem
-            available_langs = pytesseract.get_languages()
-            lang = "eng"
-            if "ind" in available_langs:
-                lang = "eng+ind"  # Mengenali teks Indonesia & Inggris sekaligus
-
-            processed = self._preprocess_for_ocr(img)
-            # Flag: LSTM Neural Network (--oem 1) & Auto Page Segmentation (--psm 3)
-            text = pytesseract.image_to_string(processed, lang=lang, config="--oem 1 --psm 3")
-            return text.strip() if text else None
-        except Exception:
-            return None
+        result = OCRService.run_ocr(img)
+        return result.text
 
     def parse(self, file_path: Path) -> ParseResult:
         warnings: list[str] = []
 
         try:
             with Image.open(file_path) as img:
-                vision_service = LocalVisionService.get_instance()
-                ai_description = vision_service.describe_image(img)
                 img_format = img.format or file_path.suffix.upper().replace(".", "")
                 width, height = img.size
                 mode = img.mode
@@ -85,8 +66,22 @@ class ImageParser(BaseParser):
                 file_size_bytes = file_path.stat().st_size
                 formatted_size = self._format_size(file_size_bytes)
 
-                # Jalankan OCR jika tersedia
-                ocr_text = self._run_ocr(img)
+                # 1. Jalankan OCR adaptif
+                ocr_result = OCRService.run_ocr(img)
+                ocr_text = ocr_result.text
+
+                # 2. Klasifikasi tipe gambar untuk routing adaptif
+                classification = OCRService.classify_image(img, ocr_text)
+
+                # 3. Jalankan vision AI secara adaptif (hanya jika sesuai dan tidak menimbulkan konflik)
+                ai_description = None
+                if classification["can_use_vision"]:
+                    vision_service = LocalVisionService.get_instance()
+                    ai_description = vision_service.describe_image(img)
+                    # Resolusi konflik: jika vision menghasilkan halusinasi fotografi pada log/kode, abaikan
+                    if ai_description and classification["image_type"] == "LOG_OR_CODE":
+                        ai_description = None
+
         except Exception as exc:
             raise ParserError(f"Gagal membaca file gambar: {str(exc)}") from exc
 
@@ -101,6 +96,7 @@ class ImageParser(BaseParser):
             f"| **Rasio Aspek** | {aspect_ratio} |",
             f"| **Mode Warna** | {mode} |",
             f"| **Ukuran File** | {formatted_size} |",
+            f"| **Tipe Konten** | {classification['label']} |",
         ]
 
         if ai_description:
@@ -112,12 +108,13 @@ class ImageParser(BaseParser):
 
         # Tambahkan hasil OCR jika ada
         if ocr_text:
+            code_lang = "log" if classification["image_type"] == "LOG_OR_CODE" else "text"
             md_lines.extend([
                 "\n---\n",
                 "### Ekstraksi Teks (OCR Lokal)\n",
                 "> [!NOTE]\n",
                 "> Teks diekstrak menggunakan OCR lokal (Tesseract dengan preprocessing) dan mungkin mengandung ketidakakuratan karakter.\n",
-                f"```text\n{ocr_text}\n```",
+                f"```{code_lang}\n{ocr_text}\n```",
             ])
         else:
             if not shutil.which("tesseract"):
@@ -137,6 +134,11 @@ class ImageParser(BaseParser):
                 "file_size": formatted_size,
                 "ai_caption": ai_description or "N/A",
                 "has_ocr_text": bool(ocr_text),
+                "image_type": classification["image_type"],
+                "content_label": classification["label"],
+                "ocr_confidence": ocr_result.confidence,
+                "ocr_lines": ocr_result.line_count,
+                "is_dark_background": ocr_result.is_dark_background,
             },
             warnings=warnings,
         )

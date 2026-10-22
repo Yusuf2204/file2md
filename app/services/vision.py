@@ -38,8 +38,12 @@ class LocalVisionService:
             self._load_failed = True
             return False
 
-    def describe_image(self, image: Image.Image) -> Optional[str]:
-        """Menghasilkan deskripsi visual gambar menggunakan model AI lokal."""
+    def describe_image(self, image: Image.Image, prompt: Optional[str] = None) -> Optional[str]:
+        """Menghasilkan deskripsi visual gambar menggunakan model AI lokal.
+        
+        Secara default menggunakan unconditional captioning agar tidak memaksakan
+        halusinasi fotografi pada screenshot dokumen atau console log.
+        """
         if not self._load_model():
             return None
 
@@ -49,9 +53,11 @@ class LocalVisionService:
             # 1. Pastikan gambar dalam format RGB
             rgb_img = image.convert("RGB")
 
-            # 2. Pancingan prompt (Conditional Captioning resmi dari Salesforce BLIP)
-            prompt = "a photography of"
-            inputs = self._processor(rgb_img, text=prompt, return_tensors="pt")
+            # 2. Unconditional captioning jika prompt tidak ditentukan
+            if prompt:
+                inputs = self._processor(rgb_img, text=prompt, return_tensors="pt")
+            else:
+                inputs = self._processor(rgb_img, return_tensors="pt")
 
             # 3. Generate dengan beam search lebih luas dan penalty seimbang
             out = self._model.generate(
