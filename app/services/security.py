@@ -1,7 +1,9 @@
 import hashlib
 import os
+import re
 import secrets
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 import jwt
 
 # Secret key untuk menandatangani JWT (dapat diubah via Environment Variable)
@@ -54,3 +56,37 @@ def decode_access_token(token: str) -> dict | None:
         return payload
     except jwt.PyJWTError:
         return None
+
+
+def sanitize_filename(filename: str, max_length: int = 200) -> str:
+    """
+    Membersihkan nama file dari path traversal, null bytes, dan karakter berbahaya.
+    Mencegah directory traversal dan buffer length overflow pada database/filesystem.
+    """
+    if not filename:
+        return "unnamed_file"
+
+    # 1. Hapus null bytes dan karakter kontrol
+    clean = re.sub(r"[\x00-\x1f\x7f]", "", filename)
+
+    # 2. Normalisasi backslash Windows menjadi slash agar cross-platform
+    clean = clean.replace("\\", "/")
+
+    # 3. Ambil hanya nama file dasar (basename)
+    clean = Path(clean).name
+
+    # 4. Ganti karakter terlarang filesystem
+    clean = re.sub(r'[\\/*?:"<>|]', "_", clean)
+    clean = clean.strip(". ")
+
+    if not clean:
+        clean = "unnamed_file"
+
+    # 4. Potong panjang jika melebihi batas, tetapi pertahankan ekstensi
+    if len(clean) > max_length:
+        p = Path(clean)
+        ext = p.suffix
+        stem = p.stem[: max_length - len(ext)]
+        clean = f"{stem}{ext}"
+
+    return clean

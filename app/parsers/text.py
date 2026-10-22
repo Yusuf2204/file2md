@@ -1,6 +1,6 @@
 from pathlib import Path
 import chardet
-from app.parsers.base import BaseParser, ParseResult
+from app.parsers.base import BaseParser, ParseResult, ParserError
 
 
 class TextParser(BaseParser):
@@ -17,6 +17,10 @@ class TextParser(BaseParser):
     def parse(self, file_path: Path) -> ParseResult:
         raw_bytes = file_path.read_bytes()
         warnings: list[str] = []
+
+        # Cegah file binary masquerading sebagai text (misal: executable atau binary dumps)
+        if b"\x00" in raw_bytes[:8192]:
+            raise ParserError("File terdeteksi sebagai binary yang mengandung null bytes, bukan teks murni.")
 
         try:
             content = raw_bytes.decode("utf-8")

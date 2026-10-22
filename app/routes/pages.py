@@ -9,6 +9,7 @@ from app.models.user import User
 from app.routes.auth import get_current_user_optional
 from app.routes.conversion import get_tier_limits
 from app.services.converter import ConversionService
+from app.services.security import sanitize_filename
 
 router = APIRouter(tags=["Pages"])
 templates = Jinja2Templates(directory="app/templates")
@@ -58,7 +59,7 @@ def convert_ui(
     # 1. Mode Single File jika hanya 1 file yang diunggah
     if len(files) == 1:
         f = files[0]
-        filename = f.filename or "unknown"
+        filename = sanitize_filename(f.filename or "unknown")
         try:
             output = service.convert_stream(
                 file_obj=f.file,
@@ -114,7 +115,7 @@ def convert_ui(
         )
 
     try:
-        file_payloads = [(f.file, f.filename or "unknown", f.content_type) for f in files]
+        file_payloads = [(f.file, sanitize_filename(f.filename or "unknown"), f.content_type) for f in files]
         bundle_out = service.bundle_streams(
             file_payloads,
             title=bundle_title,

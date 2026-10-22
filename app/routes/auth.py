@@ -1,5 +1,8 @@
 import hashlib
+import os
 import re
+import time
+from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Response, Request, status
@@ -18,11 +21,37 @@ from app.services.security import (
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
-# --- Schemas ---
+# --- Rate Limiter In-Memory (Anti Brute-Force & Credential Stuffing) ---
+class SimpleRateLimiter:
+    """Rate limiter in-memory berbasis sliding window."""
+    def __init__(self, max_requests: int = 10, window_seconds: int = 60):
+        self.max_requests = max_requests
+        self.window_seconds = window_seconds
+        self.records: dict[str, list[float]] = defaultdict(list)
+
+    def is_rate_limited(self, key: str) -> bool:
+        now = time.time()
+        self.records[key] = [t for t in self.records[key] if now - t < self.window_seconds]
+        if len(self.records[key]) >= self.max_requests:
+            return True
+        self.records[key].append(now)
+        return False
+
+    def reset(self, key: str | None = None) -> None:
+        if key:
+            self.records.pop(key, None)
+        else:
+            self.records.clear()
+
+
+login_limiter = SimpleRateLimiter(max_requests=10, window_seconds=60)
+register_limiter = SimpleRateLimiter(max_requests=5, window_seconds=60)
+
+
 # --- Schemas ---
 class RegisterRequest(BaseModel):
     email: str = Field(..., description="Alamat email pengguna")
-    password: str = Field(min_length=6, description="Password minimal 6 karakter")
+    password: str = Field(min_length=6, max_length=128, description="Password minimal 6 dan maksimal 128 karakter")
 
     @field_validator("email")
     @classmethod
@@ -87,6 +116,9 @@ def get_current_user_optional(
             .first()
         )
         if key_record and key_record.user and key_record.user.is_active:
+            # Pastikan user masih memiliki status PRO aktif untuk menggunakan API Key
+            if key_record.user.tier != "pro":
+                return None
             # Perbarui waktu terakhir digunakan
             key_record.last_used_at = datetime.now(timezone.utc)
             db.commit()
@@ -128,7 +160,14 @@ def get_current_user(
 
 # --- Endpoints ---
 @router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
-def register(req: RegisterRequest, response: Response, db: Annotated[Session, Depends(get_db)]):
+def register(req: RegisterRequest, request: Request, response: Response, db: Annotated[Session, Depends(get_db)]):
+    client_ip = request.client.host if request.client else "unknown"
+    if register_limiter.is_rate_limited(f"reg_{client_ip}"):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Terlalu banyak permintaan pendaftaran. Silakan coba lagi dalam 1 menit.",
+        )
+
     # Cek apakah email sudah terdaftar
     existing_user = db.query(User).filter(User.email == req.email).first()
     if existing_user:
@@ -151,7 +190,8 @@ def register(req: RegisterRequest, response: Response, db: Annotated[Session, De
     token = create_access_token(data={"sub": str(user.id), "email": user.email, "tier": user.tier})
 
     # Set cookie untuk browser Web UI
-    response.set_cookie(key="access_token", value=token, httponly=True, samesite="lax")
+    is_secure = request.url.scheme == "https" or os.getenv("SECURE_COOKIES", "false").lower() in ("true", "1")
+    response.set_cookie(key="access_token", value=token, httponly=True, samesite="lax", secure=is_secure)
 
     return AuthResponse(
         access_token=token,
@@ -160,7 +200,14 @@ def register(req: RegisterRequest, response: Response, db: Annotated[Session, De
 
 
 @router.post("/login", response_model=AuthResponse)
-def login(req: LoginRequest, response: Response, db: Annotated[Session, Depends(get_db)]):
+def login(req: LoginRequest, request: Request, response: Response, db: Annotated[Session, Depends(get_db)]):
+    client_ip = request.client.host if request.client else "unknown"
+    if login_limiter.is_rate_limited(f"login_{client_ip}"):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Terlalu banyak percobaan login. Silakan tunggu 1 menit sebelum mencoba lagi.",
+        )
+
     user = db.query(User).filter(User.email == req.email).first()
     if not user or not verify_password(req.password, user.hashed_password):
         raise HTTPException(
@@ -169,7 +216,8 @@ def login(req: LoginRequest, response: Response, db: Annotated[Session, Depends(
         )
 
     token = create_access_token(data={"sub": str(user.id), "email": user.email, "tier": user.tier})
-    response.set_cookie(key="access_token", value=token, httponly=True, samesite="lax")
+    is_secure = request.url.scheme == "https" or os.getenv("SECURE_COOKIES", "false").lower() in ("true", "1")
+    response.set_cookie(key="access_token", value=token, httponly=True, samesite="lax", secure=is_secure)
 
     return AuthResponse(
         access_token=token,
@@ -205,11 +253,21 @@ def get_my_profile(current_user: Annotated[User, Depends(get_current_user)]):
 
 @router.post("/toggle-tier", summary="Ubah atau toggle tier akun (Free <-> PRO) untuk simulasi/testing")
 def toggle_tier(
+    request: Request,
     response: Response,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
     req: ToggleTierRequest | None = None,
 ):
+    # Keamanan Gate: Tolak toggle tier di lingkungan produksi
+    env = os.getenv("ENVIRONMENT", "development").lower()
+    allow_dev_toggle = os.getenv("ALLOW_DEV_TIER_TOGGLE", "true" if env != "production" else "false").lower() in ("true", "1")
+    if not allow_dev_toggle or env == "production":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Fitur toggle tier dinonaktifkan di lingkungan produksi. Upgrade tier harus melalui checkout pembayaran resmi.",
+        )
+
     target = req.target_tier.lower() if req and req.target_tier else None
     if target in ("free", "pro"):
         current_user.tier = target
@@ -223,7 +281,8 @@ def toggle_tier(
     new_token = create_access_token(
         data={"sub": str(current_user.id), "email": current_user.email, "tier": current_user.tier}
     )
-    response.set_cookie(key="access_token", value=new_token, httponly=True, samesite="lax")
+    is_secure = request.url.scheme == "https" or os.getenv("SECURE_COOKIES", "false").lower() in ("true", "1")
+    response.set_cookie(key="access_token", value=new_token, httponly=True, samesite="lax", secure=is_secure)
 
     return {
         "message": f"Status tier berhasil diubah ke {current_user.tier.upper()}!",

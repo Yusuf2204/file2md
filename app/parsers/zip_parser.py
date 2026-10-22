@@ -72,6 +72,8 @@ class ZipParser(BaseParser):
                     )
 
                 extracted_count = 0
+                actual_extracted_bytes = 0
+
                 for info in infolist:
                     # 1. Lewati folder
                     if info.is_dir():
@@ -82,7 +84,18 @@ class ZipParser(BaseParser):
                         warnings.append(f"Dilewati karena path mencurigakan: {info.filename}")
                         continue
 
-                    # 3. Lewati file junk / binary compiler / node_modules
+                    target_file = (extract_dir / info.filename).resolve()
+                    if not target_file.is_relative_to(extract_dir.resolve()):
+                        warnings.append(f"Dilewati karena path traversal mencurigakan: {info.filename}")
+                        continue
+
+                    # 3. Keamanan: Cegah ekstraksi Symlink
+                    is_symlink = (info.external_attr >> 16) & 0o120000 == 0o120000
+                    if is_symlink:
+                        warnings.append(f"Dilewati karena berjenis symlink: {info.filename}")
+                        continue
+
+                    # 4. Lewati file junk / binary compiler / node_modules
                     if self._should_ignore(info.filename):
                         continue
 
@@ -90,13 +103,22 @@ class ZipParser(BaseParser):
                         warnings.append(f"Mencapai batas maksimum {self.MAX_FILES_COUNT} file. Sisa file diabaikan.")
                         break
 
-                    # 4. Ekstrak satu per satu ke folder sementara
-                    target_file = extract_dir / info.filename
+                    # 5. Ekstrak satu per satu ke folder sementara dengan running counter (Anti Zip Bomb)
                     target_file.parent.mkdir(parents=True, exist_ok=True)
                     with zf.open(info) as src, open(target_file, "wb") as dst:
-                        shutil.copyfileobj(src, dst)
+                        while True:
+                            chunk = src.read(64 * 1024)
+                            if not chunk:
+                                break
+                            actual_extracted_bytes += len(chunk)
+                            if actual_extracted_bytes > self.MAX_TOTAL_UNCOMPRESSED_BYTES:
+                                raise ParserError(
+                                    f"Total dekompresi file ZIP melebihi batas aman "
+                                    f"{self.MAX_TOTAL_UNCOMPRESSED_BYTES // (1024*1024)} MB (terdeteksi kemungkinan Zip Bomb)."
+                                )
+                            dst.write(chunk)
 
-                    # 5. Cari parser yang cocok
+                    # 6. Cari parser yang cocok
                     try:
                         parser = detector.get_parser(filename=info.filename, file_path=target_file)
                         # Hindari recursive zip extraction di dalam zip

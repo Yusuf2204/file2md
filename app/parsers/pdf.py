@@ -52,6 +52,10 @@ class PdfParser(BaseParser):
             raise ParserError(f"Gagal membuka file PDF: {str(exc)}") from exc
 
         page_count = len(doc)
+        if page_count > 500:
+            doc.close()
+            raise ParserError(f"Dokumen PDF melebihi batas aman 500 halaman (ditemukan {page_count} halaman).")
+
         if page_count == 0:
             doc.close()
             return ParseResult(

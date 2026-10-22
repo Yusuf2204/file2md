@@ -2,6 +2,8 @@ import math
 import shutil
 from pathlib import Path
 from PIL import Image, ImageEnhance
+# Batasi dekompresi gambar untuk mencegah DoS / Decompression Bomb
+Image.MAX_IMAGE_PIXELS = 50_000_000
 from app.parsers.base import BaseParser, ParseResult, ParserError
 from app.services.vision import LocalVisionService
 

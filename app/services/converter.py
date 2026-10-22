@@ -6,6 +6,7 @@ from typing import BinaryIO
 from app.parsers.base import ParseResult, ParserError
 from app.services.detector import FormatDetector, UnsupportedFormatError
 from app.services.markdown_builder import BundleItem, MarkdownBuilder
+from app.services.security import sanitize_filename
 
 
 @dataclass
@@ -43,11 +44,12 @@ class ConversionService:
         Menerima stream file, menyimpannya di file sementara yang aman (FR-11),
         memvalidasi ukuran sesuai kuota tier, melakukan parsing, dan menghapus file sementara.
         """
+        clean_filename = sanitize_filename(filename)
         max_limit = max_file_size_bytes or self.MAX_FILE_SIZE_BYTES
         temp_dir = Path("temp")
         temp_dir.mkdir(exist_ok=True)
 
-        suffix = Path(filename).suffix
+        suffix = Path(clean_filename).suffix
         temp_file = tempfile.NamedTemporaryFile(delete=False, dir=temp_dir, suffix=suffix)
         temp_path = Path(temp_file.name)
 
@@ -73,13 +75,13 @@ class ConversionService:
             temp_file.close()
 
             # 2. Dapatkan parser yang cocok
-            parser = self.detector.get_parser(filename=filename, file_path=temp_path, mime_type=mime_type)
+            parser = self.detector.get_parser(filename=clean_filename, file_path=temp_path, mime_type=mime_type)
 
             # 3. Jalankan parsing
             result: ParseResult = parser.parse(temp_path)
 
             return ConversionOutput(
-                filename=filename,
+                filename=clean_filename,
                 markdown=result.content,
                 metadata=result.metadata,
                 warnings=result.warnings,
@@ -144,23 +146,25 @@ class ConversionService:
                     max_file_size_bytes=max_file_size_bytes,
                 )
                 desc = self._describe_file(out)
+                clean_name = out.filename
                 items.append(BundleItem(
-                    filename=filename,
+                    filename=clean_name,
                     content=out.markdown,
                     description=desc,
                     warnings=out.warnings,
                 ))
                 if out.warnings:
-                    all_warnings.extend([f"[{filename}] {w}" for w in out.warnings])
+                    all_warnings.extend([f"[{clean_name}] {w}" for w in out.warnings])
                 success_count += 1
             except Exception as exc:
                 failed_count += 1
                 err_msg = str(exc)
+                clean_name = sanitize_filename(filename)
                 items.append(BundleItem(
-                    filename=filename,
+                    filename=clean_name,
                     error=err_msg,
                 ))
-                all_warnings.append(f"[{filename}] Gagal: {err_msg}")
+                all_warnings.append(f"[{clean_name}] Gagal: {err_msg}")
 
         bundle_markdown = builder.build_bundle(items)
 

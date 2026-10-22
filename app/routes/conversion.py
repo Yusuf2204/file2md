@@ -9,6 +9,7 @@ from app.parsers.base import ParserError
 from app.routes.auth import get_current_user_optional
 from app.services.converter import ConversionService
 from app.services.detector import UnsupportedFormatError
+from app.services.security import sanitize_filename
 
 router = APIRouter(prefix="/api", tags=["Conversion"])
 service = ConversionService()
@@ -46,7 +47,7 @@ def convert_file(
     current_user: Annotated[User | None, Depends(get_current_user_optional)] = None,
     db: Annotated[Session, Depends(get_db)] = None,
 ):
-    filename = file.filename or "unknown"
+    filename = sanitize_filename(file.filename or "unknown")
     max_size, _ = get_tier_limits(current_user)
 
     try:
@@ -136,7 +137,7 @@ def bundle_files(
         )
 
     file_payloads = [
-        (f.file, f.filename or "unknown", f.content_type)
+        (f.file, sanitize_filename(f.filename or "unknown"), f.content_type)
         for f in files
     ]
 

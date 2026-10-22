@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import shutil
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -22,15 +23,19 @@ def cleanup_temp_files(temp_dir: Path | str = "temp", max_age_seconds: int = 180
     now = time.time()
 
     for item in path.iterdir():
-        if item.is_file():
-            try:
-                file_age = now - item.stat().st_mtime
-                if file_age > max_age_seconds:
+        try:
+            file_age = now - item.stat().st_mtime
+            if file_age > max_age_seconds:
+                if item.is_file():
                     item.unlink(missing_ok=True)
                     deleted_count += 1
                     logger.info(f"Janitor menghapus file temp: {item.name}")
-            except Exception as e:
-                logger.warning(f"Janitor gagal menghapus file {item.name}: {e}")
+                elif item.is_dir():
+                    shutil.rmtree(item, ignore_errors=True)
+                    deleted_count += 1
+                    logger.info(f"Janitor menghapus direktori temp: {item.name}")
+        except Exception as e:
+            logger.warning(f"Janitor gagal menghapus {item.name}: {e}")
 
     return deleted_count
 
